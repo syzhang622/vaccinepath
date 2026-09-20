@@ -5,7 +5,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DF="$ROOT/deer-flow"
 # 与 Phase 0 验证时一致的上游 commit；升级前先跑 scripts/phase0_smoke.sh 确认接口没变
-DEERFLOW_COMMIT="${DEERFLOW_COMMIT:-1e3bfa0}"
+DEERFLOW_COMMIT="${DEERFLOW_COMMIT:-1e3bfa09d4e31e02d109ef2f4b41895dc89a78fe}"
 
 command -v uv >/dev/null || { echo "缺 uv：brew install uv（或 https://docs.astral.sh/uv/）"; exit 1; }
 command -v git >/dev/null || { echo "缺 git"; exit 1; }
@@ -13,8 +13,12 @@ command -v git >/dev/null || { echo "缺 git"; exit 1; }
 # 1. DeerFlow 源码
 if [ ! -d "$DF/.git" ]; then
   echo "==> clone DeerFlow"
-  git clone https://github.com/bytedance/deer-flow.git "$DF"
-  (cd "$DF" && git checkout -q "$DEERFLOW_COMMIT" 2>/dev/null || echo "   (commit $DEERFLOW_COMMIT 不在浅历史里，使用当前 HEAD)")
+  git clone --depth 1 https://github.com/bytedance/deer-flow.git "$DF"
+  if (cd "$DF" && git fetch -q --depth 1 origin "$DEERFLOW_COMMIT" 2>/dev/null && git checkout -q FETCH_HEAD); then
+    echo "   锁定到 $DEERFLOW_COMMIT"
+  else
+    echo "   (无法按 SHA 拉取 $DEERFLOW_COMMIT，使用当前 HEAD $(cd "$DF" && git rev-parse --short HEAD)；如接口不一致请报组长)"
+  fi
 else
   echo "==> deer-flow 已存在，跳过 clone（当前 $(cd "$DF" && git rev-parse --short HEAD)）"
 fi
@@ -61,7 +65,10 @@ fi
 if [ ! -f "$DF/.env" ]; then
   echo "==> 生成 .env"
   cp "$DF/.env.example" "$DF/.env"
-  printf '\n# VaccinePath：向组长要 key\nDEEPSEEK_API_KEY=\n' >> "$DF/.env"
+  printf '\n# VaccinePath：向组长要 key\nDEEPSEEK_API_KEY=%s\n' "${DEEPSEEK_API_KEY:-}" >> "$DF/.env"
+elif [ -n "${DEEPSEEK_API_KEY:-}" ] && ! grep -qE '^DEEPSEEK_API_KEY=.+' "$DF/.env"; then
+  sed -i.bak "s|^DEEPSEEK_API_KEY=.*|DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}|" "$DF/.env" && rm -f "$DF/.env.bak"
+  echo "==> 已把环境变量 DEEPSEEK_API_KEY 写入 .env"
 fi
 if ! grep -qE '^DEEPSEEK_API_KEY=.+' "$DF/.env"; then
   echo

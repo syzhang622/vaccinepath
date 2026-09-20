@@ -2,6 +2,77 @@
 
 NTU CA6117 *Agentic AI in Healthcare* 课程原型：一个**长期运行、有状态、自触发**的 agent，帮新加坡家长管理孩子的疫苗接种计划并做接种后的结构化监测。范围与设计以 [`docs/proposal_v2.md`](docs/proposal_v2.md) 为准，开发约定见 [`CLAUDE.md`](CLAUDE.md)。
 
+## 本地环境说明（组员必读）
+
+目标：从零到 `pytest` 全绿 + `phase0_smoke.sh` 通过，约 10 分钟。所有步骤在仓库根目录执行。
+
+### 0. 前置
+
+| 需要 | 版本 | 装法 |
+|---|---|---|
+| macOS / Linux | — | Windows 请用 WSL2 |
+| git | 任意 | — |
+| [uv](https://docs.astral.sh/uv/) | ≥ 0.5 | `brew install uv` 或 `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+| Python | 3.12+ | **不用自己装**，uv 会按 `pyproject.toml` 自动下载 |
+| DeepSeek API key | — | 向组长要，形如 `sk-...` |
+
+不需要 Docker、Node、Redis、nginx。
+
+### 1. clone + 一键准备
+
+```bash
+git clone git@github.com:syzhang622/vaccinepath.git
+cd vaccinepath
+DEEPSEEK_API_KEY=sk-你的key scripts/setup.sh
+```
+
+`setup.sh` 做四件事，重复执行安全：
+1. 把 DeerFlow 源码 clone 到 `deer-flow/`（锁定到 commit `1e3bfa0`，这个目录整个 gitignored，**不要往里写代码**）
+2. `uv sync` 装 DeerFlow 后端依赖（首次约 2–3 分钟）和本仓库依赖
+3. 生成 `deer-flow/config.yaml`：开 scheduler、启用 `deepseek-chat`、挂上我们的 `vp_*` 工具
+4. 生成 `deer-flow/.env` 并写入 `DEEPSEEK_API_KEY`（没传环境变量就留空，之后手动填）
+
+### 2. 跑测试（不需要 gateway、不需要 key）
+
+```bash
+uv run pytest            # 期望：71 passed
+```
+
+规则引擎、数据模型、工具层全在这里，改 `vaccinepath/` 下任何东西先跑它。
+
+### 3. 起 gateway + 端到端验证
+
+```bash
+scripts/gateway.sh start       # 后台起 DeerFlow gateway，http://localhost:8001，鉴权已关
+scripts/phase0_smoke.sh        # 建线程 → 跑一轮 → 定时任务 → 手动触发 → 验证状态延续；末尾打印 PHASE 0 PASS
+```
+
+其他命令：`scripts/gateway.sh status|log|stop`。日志在 `deer-flow/logs/gateway.log`。
+
+### 4. 跑 agent（可选，看完整闭环）
+
+```bash
+scripts/phase2_demo.sh         # 重置 mock 家庭 → 建 agent → 唤醒#1 → 模拟家长动作 → 唤醒#2 → 打印 data/db.json 证据
+```
+
+或分步：`scripts/agent_setup.sh --reset` 建 agent，`scripts/agent_wake.sh` 手动触发一次唤醒（= 前端"快进到下一次检查"）。
+
+### 5. 哪些文件不能提交
+
+`deer-flow/`、`deer-flow/.env`、`deer-flow/config.yaml`、`data/`、`logs/` 都在 `.gitignore` 里。推之前 `git status` 看一眼，**API key 绝不能进 git**。
+
+### 排错
+
+| 现象 | 原因 / 处理 |
+|---|---|
+| `setup.sh` 报 `缺 uv` | 装 uv 后重开终端 |
+| `gateway.sh start` 说 `already up on :8001` | 别人的 gateway 占着端口：`scripts/gateway.sh stop` 或 `lsof -i :8001` |
+| `phase0_smoke.sh` 第 2 步失败，日志 `No chat models are configured` | `deer-flow/.env` 里 `DEEPSEEK_API_KEY` 为空；填好后 `scripts/gateway.sh stop && scripts/gateway.sh start` |
+| 第 2 步 401 / `Authentication Fails` | key 错了 |
+| `ModuleNotFoundError: vaccinepath`（gateway 日志） | 没用 `scripts/gateway.sh` 起的 gateway（它负责设 `PYTHONPATH`） |
+| 想换回干净的 mock 数据 | `scripts/agent_setup.sh --reset` 或 `cp vaccinepath/data/mock_family.json data/db.json` |
+| 想升级 DeerFlow | 改 `scripts/setup.sh` 里的 `DEERFLOW_COMMIT`，重跑 `phase0_smoke.sh` 确认接口没变 |
+
 ## 架构
 
 | 层 | 是什么 | 在哪 |
@@ -10,58 +81,6 @@ NTU CA6117 *Agentic AI in Healthcare* 课程原型：一个**长期运行、有�
 | 规则引擎 | 纯确定性 Python：排程、查重、接种前筛查、接种后升级判定。**不经过 LLM**，可单元测试 | `vaccinepath/rules/` |
 | 前端 | Streamlit | `vaccinepath/`（Phase 3 起） |
 | 数据 | 全部 mock（JSON/SQLite）+ NCIS 日程结构化表 | `vaccinepath/`、`docs/` |
-
-## 安装
-
-前置：macOS/Linux，`git`，[`uv`](https://docs.astral.sh/uv/)（`brew install uv`）。不需要 Docker、Node、Redis。
-
-```bash
-git clone git@github.com:syzhang622/vaccinepath.git && cd vaccinepath
-scripts/setup.sh          # clone DeerFlow → uv sync → 生成 deer-flow/config.yaml 与 deer-flow/.env
-```
-
-然后在 `deer-flow/.env` 填 `DEEPSEEK_API_KEY=sk-...`（向组长要）。`config.yaml`、`.env`、`logs/` 都在 `.gitignore` 里，不会被提交。
-
-## 起 gateway
-
-```bash
-scripts/gateway.sh start    # 后台起 DeerFlow gateway，监听 http://localhost:8001（鉴权已关：DEER_FLOW_AUTH_DISABLED=1）
-scripts/gateway.sh status   # up / down
-scripts/gateway.sh log      # tail 日志（deer-flow/logs/gateway.log）
-scripts/gateway.sh stop
-```
-
-验证环境（建线程 → 跑一轮 → 建 `reuse_thread` 定时任务 → 手动 trigger → 确认第二轮带着第一轮的记忆）：
-
-```bash
-scripts/phase0_smoke.sh     # 末尾打印 PHASE 0 PASS
-```
-
-常用接口（都在 `http://localhost:8001/api/...`，完整说明见 `CLAUDE.md`）：
-
-- `POST /api/threads` 建线程；`GET /api/threads/{id}/state` 读状态
-- `POST /api/threads/{id}/runs/wait` 同步跑一轮，body `{"input":{"messages":[{"role":"user","content":"..."}]}}`
-- `POST /api/scheduled-tasks`（`context_mode: "reuse_thread"` + `thread_id` + `title` 必填）；`POST /api/scheduled-tasks/{id}/trigger` 手动触发；`GET /api/scheduled-tasks/{id}/runs` 看历史
-
-## 跑 agent（Phase 2）
-
-```bash
-scripts/agent_setup.sh --reset   # 重置 mock 家庭 → 建线程 + 持续目标 + reuse_thread 定时任务（cron 每天 09:00 SGT），id 存 data/agent.json
-scripts/agent_wake.sh            # 手动触发一次唤醒（= 前端"快进到下一次检查"），打印本轮工具调用与 agent 摘要
-scripts/phase2_demo.sh           # 一键：重置 → 唤醒#1 → 模拟家长动作 → 唤醒#2 → 打印 db.json 证据
-```
-
-每次唤醒 agent 只通过 `vp_*` 工具（`vaccinepath/tools.py`，经 `config.yaml` 的 `tools:` 段挂进 DeerFlow）读状态、调规则引擎、建任务、发提醒、转人工审核、记日志。判定全部在规则引擎；LLM 只做流程编排和文案。唤醒 prompt 与目标在 `vaccinepath/agent/prompts.py`。数据在 `data/db.json`（gitignored，种子 `vaccinepath/data/mock_family.json`）。
-
-## 跑测试
-
-规则引擎的测试在 `tests/`，规则说明与判定表在 [`docs/rule_engine.md`](docs/rule_engine.md)。所有函数入参出参用 Pydantic 定义（`vaccinepath/models.py`），测试直接对着模型写：
-
-```bash
-uv sync                     # 仓库根目录，安装 vaccinepath 自身依赖（pytest 等）
-uv run pytest               # 全部（含工具层，用临时目录隔离）
-uv run pytest tests/test_compute_schedule.py -v
-```
 
 ## 目录
 
