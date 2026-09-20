@@ -1,0 +1,208 @@
+{
+  "_source": {
+    "title": "National Childhood Immunisation Schedule (NCIS), from birth to age 17 years",
+    "publisher": "Ministry of Health, Singapore",
+    "updated": "2026-04-01",
+    "file": "docs/ncis_moh_2026-04.pdf",
+    "transcribed": "2026-09-20, 逐格对照第 1 页表格图像 + 第 2-4 页文字。只收录 PDF 明确写出的内容；PDF 未给出的信息（如各疫苗最小间隔、逾期阈值）不在此文件中，见 open_questions"
+  },
+
+  "age_columns": [
+    {"id": "birth",  "label": "Birth",        "min_months": 0,   "max_months": 0},
+    {"id": "2m",     "label": "2 months",     "min_months": 2,   "max_months": 2},
+    {"id": "4m",     "label": "4 months",     "min_months": 4,   "max_months": 4},
+    {"id": "6m",     "label": "6 months",     "min_months": 6,   "max_months": 6},
+    {"id": "12m",    "label": "12 months",    "min_months": 12,  "max_months": 12},
+    {"id": "15m",    "label": "15 months",    "min_months": 15,  "max_months": 15},
+    {"id": "18m",    "label": "18 months",    "min_months": 18,  "max_months": 18},
+    {"id": "2-4y",   "label": "2-4 years",    "min_months": 24,  "max_months": 59},
+    {"id": "5-9y",   "label": "5-9 years",    "min_months": 60,  "max_months": 119},
+    {"id": "10-11y", "label": "10-11 years",  "min_months": 120, "max_months": 143, "school_level": "Primary 5"},
+    {"id": "12-13y", "label": "12-13 years",  "min_months": 144, "max_months": 167, "school_level": "Secondary 1"},
+    {"id": "13-14y", "label": "13-14 years",  "min_months": 156, "max_months": 179, "school_level": "Secondary 2"},
+    {"id": "15-17y", "label": "15-17 years",  "min_months": 180, "max_months": 215}
+  ],
+
+  "vaccines": [
+    {
+      "code": "BCG", "name": "Bacillus Calmette-Guérin", "population": "all",
+      "doses": [
+        {"label": "D1", "dose_number": 1, "column": "birth"}
+      ]
+    },
+    {
+      "code": "HepB", "name": "Hepatitis B", "population": "all",
+      "doses": [
+        {"label": "D1", "dose_number": 1, "column": "birth", "product": "monovalent HepB", "timing_note": "birth dose, within 24 hours (p2)"},
+        {"label": "D2", "dose_number": 2, "column": "2m",    "product": "6-in-1"},
+        {"label": "D3", "dose_number": 3, "column": "6m",    "product": "6-in-1"}
+      ],
+      "variants": [
+        {
+          "condition": "infant born to HBsAg-positive mother",
+          "source": "p2",
+          "doses": [
+            {"label": "D1", "dose_number": 1, "column": "birth", "product": "monovalent HepB + HBIG", "timing_note": "within 12 hours or ASAP"},
+            {"label": "D2", "dose_number": 2, "age_months": 1, "product": "monovalent HepB"},
+            {"label": "(5-in-1 at 2 months)", "dose_number": null, "column": "2m", "product": "5-in-1", "note": "此针不含 HepB，PDF 列在此处提示 2 月龄改用 5-in-1"},
+            {"label": "D3", "dose_number": 3, "column": "6m", "product": "6-in-1"}
+          ]
+        }
+      ]
+    },
+    {
+      "code": "DTaP", "name": "Diphtheria, tetanus and acellular pertussis (paediatric)", "population": "all",
+      "doses": [
+        {"label": "D1", "dose_number": 1, "column": "2m",  "product": "6-in-1"},
+        {"label": "D2", "dose_number": 2, "column": "4m",  "product": "5-in-1"},
+        {"label": "D3", "dose_number": 3, "column": "6m",  "product": "6-in-1"},
+        {"label": "B1", "dose_number": 4, "column": "18m", "product": "5-in-1"}
+      ],
+      "notes": ["p2 把 DTaP/Tdap 写成同一系列 Dose 1-5：Dose 4 = B1 (18m)，Dose 5 = Tdap B2 (10-11y)"]
+    },
+    {
+      "code": "Tdap", "name": "Tetanus, reduced diphtheria and acellular pertussis", "population": "all",
+      "doses": [
+        {"label": "B2", "dose_number": 5, "column": "10-11y", "product": "Tdap-IPV", "series_of": "DTaP",
+         "note": "Tdap can be used instead of Tdap-IPV if IPV is not indicated (p2)；由 HPB 学校接种计划提供 (p1 footnote)"}
+      ]
+    },
+    {
+      "code": "IPV", "name": "Inactivated poliovirus", "population": "all",
+      "doses": [
+        {"label": "D1", "dose_number": 1, "column": "2m",     "product": "6-in-1"},
+        {"label": "D2", "dose_number": 2, "column": "4m",     "product": "5-in-1"},
+        {"label": "D3", "dose_number": 3, "column": "6m",     "product": "6-in-1"},
+        {"label": "B1", "dose_number": 4, "column": "18m",    "product": "5-in-1"},
+        {"label": "B2", "dose_number": 5, "column": "10-11y", "product": "Tdap-IPV",
+         "note": "IPV can be used instead of Tdap-IPV if Tdap is not indicated (p2)；学校接种计划提供"}
+      ]
+    },
+    {
+      "code": "Hib", "name": "Haemophilus influenzae type b", "population": "all",
+      "doses": [
+        {"label": "D1", "dose_number": 1, "column": "2m",  "product": "6-in-1"},
+        {"label": "D2", "dose_number": 2, "column": "4m",  "product": "5-in-1"},
+        {"label": "D3", "dose_number": 3, "column": "6m",  "product": "6-in-1"},
+        {"label": "B1", "dose_number": 4, "column": "18m", "product": "5-in-1"}
+      ]
+    },
+    {
+      "code": "PCV13", "name": "Pneumococcal conjugate", "population": "all",
+      "doses": [
+        {"label": "D1", "dose_number": 1, "column": "4m"},
+        {"label": "D2", "dose_number": 2, "column": "6m"},
+        {"label": "B1", "dose_number": 3, "column": "12m"}
+      ],
+      "high_risk": {
+        "source": "p2",
+        "age_range_months": [24, 215],
+        "conditions": [
+          "cochlear implant or cerebrospinal fluid leak",
+          "anatomic or functional asplenia (incl. homozygous sickle cell disease, coeliac syndrome)",
+          "immunosuppression (incl. medication-induced, HIV, other immunodeficiencies)"
+        ],
+        "rule": "Children who did not receive PCV as per routine schedule are recommended to receive age- or indication-appropriate doses — PDF 未给出具体剂次/间隔"
+      }
+    },
+    {
+      "code": "PPSV23", "name": "Pneumococcal polysaccharide", "population": "high_risk_only",
+      "doses": [],
+      "high_risk": {
+        "source": "p1, p3",
+        "age_range_months": [24, 215],
+        "dose_count": "one or two doses depending on high-risk condition",
+        "conditions": [
+          "chronic pulmonary, cardiovascular, renal or liver disease, or diabetes mellitus",
+          "cochlear implant or cerebrospinal fluid leak",
+          "anatomic or functional asplenia (incl. homozygous sickle cell disease, coeliac syndrome)",
+          "immunosuppression (incl. medication-induced, HIV, other immunodeficiencies)"
+        ],
+        "rule": "If both PCV13 and PPSV23 are indicated, PCV13 first, PPSV23 at the appropriate interval later — PDF 未给出间隔"
+      }
+    },
+    {
+      "code": "MMR", "name": "Measles, mumps and rubella", "population": "all",
+      "doses": [
+        {"label": "D1", "dose_number": 1, "column": "12m", "product": "separate MMR"},
+        {"label": "D2", "dose_number": 2, "column": "15m", "product": "MMRV"}
+      ],
+      "catch_up": {"source": "p3", "series": "2-dose", "min_interval_weeks": 4,
+                   "note": "MMR (as catch-up) 由学校接种计划提供 (p1 footnote)"}
+    },
+    {
+      "code": "VAR", "name": "Varicella", "population": "all",
+      "doses": [
+        {"label": "D1", "dose_number": 1, "column": "12m", "product": "separate VAR"},
+        {"label": "D2", "dose_number": 2, "column": "15m", "product": "MMRV"}
+      ],
+      "catch_up": {
+        "source": "p3", "series": "2-dose",
+        "by_age": [
+          {"age_months_lt": 156, "interval": {"months": 3}},
+          {"age_months_range": [156, 215], "interval": {"min_weeks": 4, "max_weeks": 8}}
+        ]
+      }
+    },
+    {
+      "code": "HPV2", "name": "Human papillomavirus (2-valent)", "population": "females",
+      "doses": [
+        {"label": "D1", "dose_number": 1, "column": "12-13y", "programme": "school-based (Secondary 1)"},
+        {"label": "D2", "dose_number": 2, "column": "13-14y", "programme": "school-based (Secondary 2)"}
+      ],
+      "outside_school_programme": {
+        "source": "p3",
+        "by_age": [
+          {"age_months_range": [108, 179], "series": "2-dose", "schedule_months": [0, 6]},
+          {"age_months_range": [180, 215], "series": "3-dose", "schedule_months": [0, 1, 6]}
+        ]
+      }
+    },
+    {
+      "code": "INF", "name": "Influenza (seasonal)", "population": "all_6_59_months; high_risk_5_17y",
+      "doses": [],
+      "recurring": {
+        "source": "p1, p4",
+        "frequency": "annually or per season, depending on prevailing recommendations for that year",
+        "all_children_age_months": [6, 59],
+        "high_risk_age_months": [60, 215],
+        "high_risk_conditions": [
+          "chronic disorders of the pulmonary or cardiovascular systems, including asthma",
+          "medical follow-up or hospitalisation due to chronic metabolic diseases (incl. diabetes mellitus), renal, neurologic, hepatic, or haematologic disorders, or immunosuppression",
+          "long-term aspirin therapy (Reye syndrome risk)"
+        ],
+        "first_time_series": {"age_months_range": [6, 107], "doses": 2, "interval_weeks": 4,
+                              "note": "6 months to 8 years, first-ever influenza vaccination"},
+        "otherwise": "1 dose (age 6m-8y not first time; age 9-17y always 1 dose)",
+        "product_note": "SKYCellflu is indicated from age 3 years"
+      }
+    }
+  ],
+
+  "combination_products": {
+    "5-in-1": {"components": ["DTaP", "IPV", "Hib"]},
+    "6-in-1": {"components": ["DTaP", "IPV", "Hib", "HepB"]},
+    "Tdap-IPV": {"components": ["Tdap", "IPV"]},
+    "MMRV": {"components": ["MMR", "VAR"]}
+  },
+
+  "mmrv_rules": {
+    "source": "p3",
+    "dose1_default": "separate MMR + VAR at 12 months",
+    "dose1_mmrv_age_12_47_months": "allowed only with clinical advice + parental consent (higher febrile seizure risk)",
+    "dose1_mmrv_catch_up_age_months": [48, 155],
+    "dose2_mmrv_age_months": [15, 155],
+    "mmrv_max_age_years": 12,
+    "age_13_17": "separate MMR and/or VAR"
+  },
+
+  "school_based_programme": {
+    "source": "p1 footnote",
+    "provider": "Health Promotion Board",
+    "items": [
+      {"school_level": "Primary 5",   "column": "10-11y", "vaccines": ["Tdap-IPV"]},
+      {"school_level": "Secondary 1", "column": "12-13y", "vaccines": ["HPV2 D1 (females)", "MMR catch-up"]},
+      {"school_level": "Secondary 2", "column": "13-14y", "vaccines": ["HPV2 D2 (females)"]}
+    ]
+  }
+}
