@@ -94,23 +94,28 @@ Catch-up（只有 PDF p3/p4 写了的）：
 **入参** `EscalationInput{child, checkin: CheckIn, criteria: EscalationCriteria}`
 **出参** `EscalationResult{child_id, checkin_id, outcome: CONTINUE|WARN|URGENT, triggers, next_checkin_in_hours, disclaimer, source_ref}`
 
-> ⚠️ **阈值不是 MOH 来源。** NCIS 不涉及接种后监测。`EscalationCriteria` 的默认值是团队为原型自定的，放在 Pydantic 模型里以便审核、覆盖和测试固定；真实使用前须医生签字。
+NCIS 不涉及接种后监测，本函数的判据来自两份新加坡官方页面，原文摘录在 `docs/sources/`：
 
-| 级别 | 默认触发条件 |
-|---|---|
-| **URGENT**（Urgent Assessment Required） | 呼吸困难 / 抽搐 / 无反应或极度嗜睡 / 面唇舌肿胀 / 全身荨麻疹；体温 ≥ 40.0°C；<3 月龄且 ≥ 38.0°C |
-| **WARN**（→ Professional Review Required） | 体温 ≥ 38.5°C；发热 > 48h；持续哭闹 ≥ 3h；24h 呕吐 ≥ 3 次；注射部位大范围肿胀 / 进食减少 / 局部皮疹；症状加重；接种后 > 7 天仍有症状；家长非常担心 |
-| **CONTINUE** | 以上都没有 → 24h 后再打卡 |
+| 级别 | 来源 | 触发条件（默认 `EscalationCriteria`） |
+|---|---|---|
+| **发热定义** | KKH《Post Vaccination Advice》 | 腋温 > 37.6°C 或耳温 > 37.8°C（打卡填体温必须填部位） |
+| **WARN**（建议看医生 → Professional Review Required） | KKH "When to consult a doctor" | 退烧药后仍发热；发热持续 > 2 天（48h）；明显不活跃；持续哭闹**但能安抚** |
+| | HealthHub "If you are concerned… seek medical attention" | 家长担心 / 觉得在变差 |
+| **URGENT**（立刻急诊 → Urgent Assessment Required） | HealthHub《Fever in Children》(reviewed 2026-06-17) "Go to the Children's Emergency immediately" | 体温 > 41.0°C；< 3 月龄且 ≥ 38.0°C；叫不醒；意识混乱；哭闹**无法安抚**；呼吸困难；极度嗜睡；肤色苍白/发灰；瘀点；抽搐；饮水与尿量明显减少 |
+| **CONTINUE** | — | 以上都没有 → 24h 后再打卡。KKH 列为常见反应的注射部位红肿痛、烦躁、轻微皮疹、呕吐只记录不触发 |
 
-URGENT 优先于 WARN；URGENT 结果里也列出同时命中的 WARN 触发项，便于审核。
+- "持续哭闹"两份来源都有：打卡表分成 `crying_persistent_consolable`（→WARN）和 `crying_inconsolable`（→URGENT）。
+- KKH 的 "Seizures/fits" 与 HealthHub 的抽搐重叠，按 URGENT 处理。
+- 没有官方数字的阈值（如早先的 38.5°C）一律不设。
+- URGENT 优先于 WARN；URGENT 结果里也列出同时命中的 WARN 触发项。`source_ref` 指向命中的来源。
 
 ## §3 测试
 
 `tests/` 下每个函数 ≥3 正例 ≥3 反例，另有 `test_ncis_data.py` 把第 1 页表格逐格钉死（改 JSON 会红）。
 
 ```bash
-uv run pytest            # 48 passed
+uv run pytest            # 62 passed
 uv run pytest -k schedule -v
 ```
 
-给队友的接手建议：先加 `docs/proposal_v2.md` 里三类家庭（多孩、跨机构、海外迁入）的端到端用例；`EscalationCriteria` 每个阈值加一对边界值测试。
+给队友的接手建议：先加 `docs/proposal_v2.md` 里三类家庭（多孩、跨机构、海外迁入）的端到端用例。

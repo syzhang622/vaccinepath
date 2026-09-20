@@ -297,19 +297,32 @@ class ScreenResult(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+class TemperatureSite(StrEnum):
+    axillary = "axillary"  # 腋温
+    tympanic = "tympanic"  # 耳温
+
+
 class Symptom(StrEnum):
+    """打卡可勾选的症状。分组见 EscalationCriteria；未列入 urgent/warn 集合的只记录不触发。"""
+
+    # HealthHub《Fever in Children》"Go to the Children's Emergency immediately"
+    difficult_to_awaken = "difficult_to_awaken"
+    confused_or_delirious = "confused_or_delirious"
+    crying_inconsolable = "crying_inconsolable"  # cries constantly and you cannot settle
     difficulty_breathing = "difficulty_breathing"
+    very_lethargic = "very_lethargic"
+    skin_pale_or_grey = "skin_pale_or_grey"
+    bruising_spots = "bruising_spots"  # 瘀点
     seizure = "seizure"
-    unresponsive_or_very_drowsy = "unresponsive_or_very_drowsy"
-    swelling_face_lips_tongue = "swelling_face_lips_tongue"
-    widespread_hives = "widespread_hives"
-    persistent_crying = "persistent_crying"
-    vomiting = "vomiting"
-    reduced_feeding = "reduced_feeding"
-    localised_rash = "localised_rash"
-    injection_site_large_swelling = "injection_site_large_swelling"
-    injection_site_mild = "injection_site_mild"
+    drinking_less_and_less_urine = "drinking_less_and_less_urine"
+    # KKH《Post Vaccination Advice》"When to consult a doctor"
+    less_active_than_usual = "less_active_than_usual"
+    crying_persistent_consolable = "crying_persistent_consolable"  # 持续哭闹但能安抚
+    # 仅记录（KKH 列为常见反应，不触发）
+    injection_site_redness_swelling_pain = "injection_site_redness_swelling_pain"
     irritability = "irritability"
+    mild_rash = "mild_rash"
+    vomiting = "vomiting"
 
 
 class CheckIn(BaseModel):
@@ -321,42 +334,51 @@ class CheckIn(BaseModel):
     submitted_at: datetime
     days_since_vaccination: int = Field(ge=0)
     temperature_c: float | None = Field(default=None, ge=30, le=45)
-    fever_duration_hours: int | None = Field(default=None, ge=0)
+    temperature_site: TemperatureSite | None = Field(default=None, description="填了体温必须填测量部位（KKH 发热定义按部位区分）")
+    fever_duration_hours: int | None = Field(default=None, ge=0, description="本次发热已持续小时数")
+    fever_after_antipyretic: bool | None = Field(default=None, description="服退烧药后是否仍发热（KKH: Medication does not reduce fever）")
     symptoms: list[Symptom] = Field(default_factory=list)
-    persistent_crying_hours: float | None = Field(default=None, ge=0)
-    vomiting_episodes_24h: int | None = Field(default=None, ge=0)
-    symptoms_worsening: bool = False
-    parent_very_worried: bool = False
+    parent_very_worried: bool = Field(default=False, description="家长担心或觉得在变差（HealthHub: If you are concerned… seek medical attention）")
     free_text: str | None = None
+
+    @model_validator(mode="after")
+    def _site_required_with_temperature(self) -> CheckIn:
+        if self.temperature_c is not None and self.temperature_site is None:
+            raise ValueError("填写体温时必须填写 temperature_site（axillary/tympanic）")
+        return self
 
 
 class EscalationCriteria(BaseModel):
-    """升级阈值。**团队自定，非 MOH 来源**，上线前须医生签字；放在模型里以便审核与测试固定。"""
+    """升级阈值。默认值逐条来自官方页面（见 docs/sources/），字段名后注明出处。"""
 
-    urgent_symptoms: set[Symptom] = Field(
-        default_factory=lambda: {
-            Symptom.difficulty_breathing,
-            Symptom.seizure,
-            Symptom.unresponsive_or_very_drowsy,
-            Symptom.swelling_face_lips_tongue,
-            Symptom.widespread_hives,
-        }
-    )
-    urgent_temperature_c: float = 40.0
-    infant_fever_age_months_lt: int = 3
-    infant_fever_temperature_c: float = 38.0
-    warn_temperature_c: float = 38.5
-    warn_fever_duration_hours: int = 48
-    warn_persistent_crying_hours: float = 3.0
-    warn_vomiting_episodes_24h: int = 3
+    # ---- 发热定义：KKH Post Vaccination Advice ----
+    fever_axillary_gt_c: float = 37.6
+    fever_tympanic_gt_c: float = 37.8
+    # ---- WARN：KKH "When to consult a doctor" ----
+    warn_fever_duration_hours_gt: int = 48  # Persistent fever for more than 2 days
     warn_symptoms: set[Symptom] = Field(
         default_factory=lambda: {
-            Symptom.injection_site_large_swelling,
-            Symptom.reduced_feeding,
-            Symptom.localised_rash,
+            Symptom.less_active_than_usual,  # Child is less active than usual
+            Symptom.crying_persistent_consolable,  # Persistent crying（能安抚）
         }
     )
-    warn_symptom_persist_days: int = 7
+    # ---- URGENT：HealthHub Fever in Children (reviewed 2026-06-17) ----
+    urgent_temperature_gt_c: float = 41.0
+    infant_age_months_lt: int = 3
+    infant_fever_gte_c: float = 38.0
+    urgent_symptoms: set[Symptom] = Field(
+        default_factory=lambda: {
+            Symptom.difficult_to_awaken,
+            Symptom.confused_or_delirious,
+            Symptom.crying_inconsolable,
+            Symptom.difficulty_breathing,
+            Symptom.very_lethargic,
+            Symptom.skin_pale_or_grey,
+            Symptom.bruising_spots,
+            Symptom.seizure,
+            Symptom.drinking_less_and_less_urine,
+        }
+    )
 
 
 class EscalationInput(BaseModel):
