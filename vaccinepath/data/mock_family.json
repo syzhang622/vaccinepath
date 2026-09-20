@@ -1,0 +1,413 @@
+{
+  "families": {
+    "fam-lim": {
+      "id": "fam-lim",
+      "guardian_name": "Mrs Lim",
+      "contact": "+65 9xxx xxxx (mock)",
+      "timezone": "Asia/Singapore"
+    }
+  },
+  "children": {
+    "child-mei": {
+      "id": "child-mei",
+      "family_id": "fam-lim",
+      "name": "Mei",
+      "date_of_birth": "2025-01-15",
+      "sex": "female",
+      "attends_local_school": true,
+      "high_risk_condition": false,
+      "high_risk_notes": null,
+      "notes": "本地出生，按时打到 12 个月，18 个月加强针漏了"
+    },
+    "child-kai": {
+      "id": "child-kai",
+      "family_id": "fam-lim",
+      "name": "Kai",
+      "date_of_birth": "2023-06-10",
+      "sex": "male",
+      "attends_local_school": true,
+      "high_risk_condition": false,
+      "high_risk_notes": null,
+      "notes": "本地出生，2 岁前全部完成"
+    },
+    "child-priya": {
+      "id": "child-priya",
+      "family_id": "fam-lim",
+      "name": "Priya",
+      "date_of_birth": "2024-06-01",
+      "sex": "female",
+      "attends_local_school": false,
+      "high_risk_condition": false,
+      "high_risk_notes": null,
+      "notes": "2026-08 从印度迁入，海外接种卡两针，未核实"
+    }
+  },
+  "records": {
+    "rec-mei-01": {
+      "id": "rec-mei-01",
+      "child_id": "child-mei",
+      "date": "2025-01-15",
+      "vaccines": [
+        "BCG"
+      ],
+      "product": null,
+      "dose_label": "D1",
+      "source": "polyclinic",
+      "country": null,
+      "verified": false,
+      "notes": null
+    },
+    "rec-mei-02": {
+      "id": "rec-mei-02",
+      "child_id": "child-mei",
+      "date": "2025-01-15",
+      "vaccines": [
+        "HepB"
+      ],
+      "product": "monovalent HepB",
+      "dose_label": "D1",
+      "source": "polyclinic",
+      "country": null,
+      "verified": false,
+      "notes": null
+    },
+    "rec-mei-03": {
+      "id": "rec-mei-03",
+      "child_id": "child-mei",
+      "date": "2025-03-17",
+      "vaccines": [
+        "DTaP",
+        "IPV",
+        "Hib",
+        "HepB"
+      ],
+      "product": "6-in-1",
+      "dose_label": null,
+      "source": "polyclinic",
+      "country": null,
+      "verified": false,
+      "notes": null
+    },
+    "rec-mei-04": {
+      "id": "rec-mei-04",
+      "child_id": "child-mei",
+      "date": "2025-05-16",
+      "vaccines": [
+        "DTaP",
+        "IPV",
+        "Hib",
+        "PCV13"
+      ],
+      "product": "5-in-1 + PCV13",
+      "dose_label": null,
+      "source": "polyclinic",
+      "country": null,
+      "verified": false,
+      "notes": null
+    },
+    "rec-mei-05": {
+      "id": "rec-mei-05",
+      "child_id": "child-mei",
+      "date": "2025-07-18",
+      "vaccines": [
+        "DTaP",
+        "IPV",
+        "Hib",
+        "HepB",
+        "PCV13"
+      ],
+      "product": "6-in-1 + PCV13",
+      "dose_label": null,
+      "source": "polyclinic",
+      "country": null,
+      "verified": false,
+      "notes": null
+    },
+    "rec-mei-06": {
+      "id": "rec-mei-06",
+      "child_id": "child-mei",
+      "date": "2025-08-20",
+      "vaccines": [
+        "INF"
+      ],
+      "product": "influenza (first dose)",
+      "dose_label": null,
+      "source": "polyclinic",
+      "country": null,
+      "verified": false,
+      "notes": null
+    },
+    "rec-mei-07": {
+      "id": "rec-mei-07",
+      "child_id": "child-mei",
+      "date": "2025-09-19",
+      "vaccines": [
+        "INF"
+      ],
+      "product": "influenza (second dose)",
+      "dose_label": null,
+      "source": "polyclinic",
+      "country": null,
+      "verified": false,
+      "notes": null
+    },
+    "rec-mei-08": {
+      "id": "rec-mei-08",
+      "child_id": "child-mei",
+      "date": "2026-01-20",
+      "vaccines": [
+        "PCV13",
+        "MMR",
+        "VAR"
+      ],
+      "product": "PCV13 B1 + MMR + VAR",
+      "dose_label": null,
+      "source": "polyclinic",
+      "country": null,
+      "verified": false,
+      "notes": null
+    },
+    "rec-mei-09": {
+      "id": "rec-mei-09",
+      "child_id": "child-mei",
+      "date": "2026-04-21",
+      "vaccines": [
+        "MMR",
+        "VAR"
+      ],
+      "product": "MMRV",
+      "dose_label": null,
+      "source": "polyclinic",
+      "country": null,
+      "verified": false,
+      "notes": null
+    },
+    "rec-kai-01": {
+      "id": "rec-kai-01",
+      "child_id": "child-kai",
+      "date": "2023-06-10",
+      "vaccines": [
+        "BCG"
+      ],
+      "product": null,
+      "dose_label": null,
+      "source": "polyclinic",
+      "country": null,
+      "verified": false,
+      "notes": null
+    },
+    "rec-kai-02": {
+      "id": "rec-kai-02",
+      "child_id": "child-kai",
+      "date": "2023-06-10",
+      "vaccines": [
+        "HepB"
+      ],
+      "product": "monovalent HepB",
+      "dose_label": null,
+      "source": "polyclinic",
+      "country": null,
+      "verified": false,
+      "notes": null
+    },
+    "rec-kai-03": {
+      "id": "rec-kai-03",
+      "child_id": "child-kai",
+      "date": "2023-08-10",
+      "vaccines": [
+        "DTaP",
+        "IPV",
+        "Hib",
+        "HepB"
+      ],
+      "product": "6-in-1",
+      "dose_label": null,
+      "source": "polyclinic",
+      "country": null,
+      "verified": false,
+      "notes": null
+    },
+    "rec-kai-04": {
+      "id": "rec-kai-04",
+      "child_id": "child-kai",
+      "date": "2023-10-10",
+      "vaccines": [
+        "DTaP",
+        "IPV",
+        "Hib",
+        "PCV13"
+      ],
+      "product": "5-in-1 + PCV13",
+      "dose_label": null,
+      "source": "polyclinic",
+      "country": null,
+      "verified": false,
+      "notes": null
+    },
+    "rec-kai-05": {
+      "id": "rec-kai-05",
+      "child_id": "child-kai",
+      "date": "2023-12-11",
+      "vaccines": [
+        "DTaP",
+        "IPV",
+        "Hib",
+        "HepB",
+        "PCV13"
+      ],
+      "product": "6-in-1 + PCV13",
+      "dose_label": null,
+      "source": "polyclinic",
+      "country": null,
+      "verified": false,
+      "notes": null
+    },
+    "rec-kai-06": {
+      "id": "rec-kai-06",
+      "child_id": "child-kai",
+      "date": "2024-01-08",
+      "vaccines": [
+        "INF"
+      ],
+      "product": null,
+      "dose_label": null,
+      "source": "polyclinic",
+      "country": null,
+      "verified": false,
+      "notes": null
+    },
+    "rec-kai-07": {
+      "id": "rec-kai-07",
+      "child_id": "child-kai",
+      "date": "2024-02-05",
+      "vaccines": [
+        "INF"
+      ],
+      "product": null,
+      "dose_label": null,
+      "source": "polyclinic",
+      "country": null,
+      "verified": false,
+      "notes": null
+    },
+    "rec-kai-08": {
+      "id": "rec-kai-08",
+      "child_id": "child-kai",
+      "date": "2024-06-12",
+      "vaccines": [
+        "PCV13",
+        "MMR",
+        "VAR"
+      ],
+      "product": "PCV13 B1 + MMR + VAR",
+      "dose_label": null,
+      "source": "polyclinic",
+      "country": null,
+      "verified": false,
+      "notes": null
+    },
+    "rec-kai-09": {
+      "id": "rec-kai-09",
+      "child_id": "child-kai",
+      "date": "2024-09-12",
+      "vaccines": [
+        "MMR",
+        "VAR"
+      ],
+      "product": "MMRV",
+      "dose_label": null,
+      "source": "polyclinic",
+      "country": null,
+      "verified": false,
+      "notes": null
+    },
+    "rec-kai-10": {
+      "id": "rec-kai-10",
+      "child_id": "child-kai",
+      "date": "2024-12-12",
+      "vaccines": [
+        "DTaP",
+        "IPV",
+        "Hib"
+      ],
+      "product": "5-in-1 (B1)",
+      "dose_label": null,
+      "source": "polyclinic",
+      "country": null,
+      "verified": false,
+      "notes": null
+    },
+    "rec-kai-11": {
+      "id": "rec-kai-11",
+      "child_id": "child-kai",
+      "date": "2025-02-10",
+      "vaccines": [
+        "INF"
+      ],
+      "product": null,
+      "dose_label": null,
+      "source": "polyclinic",
+      "country": null,
+      "verified": false,
+      "notes": null
+    },
+    "rec-kai-12": {
+      "id": "rec-kai-12",
+      "child_id": "child-kai",
+      "date": "2026-02-12",
+      "vaccines": [
+        "INF"
+      ],
+      "product": null,
+      "dose_label": null,
+      "source": "polyclinic",
+      "country": null,
+      "verified": false,
+      "notes": null
+    },
+    "rec-priya-01": {
+      "id": "rec-priya-01",
+      "child_id": "child-priya",
+      "date": "2024-08-05",
+      "vaccines": [
+        "DTaP",
+        "IPV",
+        "Hib",
+        "HepB"
+      ],
+      "product": "Hexaxim",
+      "dose_label": null,
+      "source": "overseas",
+      "country": "IN",
+      "verified": false,
+      "notes": "接种卡手写"
+    },
+    "rec-priya-02": {
+      "id": "rec-priya-02",
+      "child_id": "child-priya",
+      "date": "2024-11-20",
+      "vaccines": [
+        "DTaP",
+        "IPV",
+        "Hib"
+      ],
+      "product": "Pentaxim",
+      "dose_label": null,
+      "source": "overseas",
+      "country": "IN",
+      "verified": false,
+      "notes": "接种卡手写"
+    }
+  },
+  "tasks": {},
+  "screenings": {},
+  "checkins": {},
+  "notifications": [],
+  "audit_log": [],
+  "settings": {
+    "reminder_repeat_hours": 0,
+    "max_reminders": 3,
+    "_note": "demo: reminder_repeat_hours=0 让每次唤醒都视为已过一个提醒周期"
+  },
+  "agent": {}
+}
