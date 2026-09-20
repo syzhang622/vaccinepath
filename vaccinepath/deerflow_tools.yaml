@@ -1,0 +1,42 @@
+# VaccinePath 工具：由 scripts/setup.sh 追加到 deer-flow/config.yaml 的 tools: 段末尾。
+# gateway 需要 PYTHONPATH 含仓库根目录（scripts/gateway.sh 已设）。
+
+  - name: vp_list_children
+    group: vaccinepath
+    use: vaccinepath.tools:vp_list_children
+  - name: vp_get_child
+    group: vaccinepath
+    use: vaccinepath.tools:vp_get_child
+  - name: vp_check_schedule
+    group: vaccinepath
+    use: vaccinepath.tools:vp_check_schedule
+  - name: vp_check_records
+    group: vaccinepath
+    use: vaccinepath.tools:vp_check_records
+  - name: vp_list_tasks
+    group: vaccinepath
+    use: vaccinepath.tools:vp_list_tasks
+  - name: vp_create_task
+    group: vaccinepath
+    use: vaccinepath.tools:vp_create_task
+  - name: vp_create_tasks
+    group: vaccinepath
+    use: vaccinepath.tools:vp_create_tasks
+  - name: vp_update_task
+    group: vaccinepath
+    use: vaccinepath.tools:vp_update_task
+  - name: vp_send_reminder
+    group: vaccinepath
+    use: vaccinepath.tools:vp_send_reminder
+  - name: vp_request_review
+    group: vaccinepath
+    use: vaccinepath.tools:vp_request_review
+  - name: vp_evaluate_checkin
+    group: vaccinepath
+    use: vaccinepath.tools:vp_evaluate_checkin
+  - name: vp_evaluate_screening
+    group: vaccinepath
+    use: vaccinepath.tools:vp_evaluate_screening
+  - name: vp_log
+    group: vaccinepath
+    use: vaccinepath.tools:vp_log

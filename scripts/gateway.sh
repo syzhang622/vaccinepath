@@ -11,7 +11,7 @@ case "${1:-status}" in
     if curl -sf -o /dev/null "http://localhost:$PORT/docs"; then echo "gateway already up on :$PORT"; exit 0; fi
     mkdir -p "$DF/logs"
     # 显式导出 .env（API key 等），不依赖 load_dotenv 的查找路径
-    (cd "$DF/backend" && set -a && [ -f "$DF/.env" ] && . "$DF/.env"; set +a; DEER_FLOW_AUTH_DISABLED=1 PYTHONPATH=. \
+    (cd "$DF/backend" && set -a && [ -f "$DF/.env" ] && . "$DF/.env"; set +a; DEER_FLOW_AUTH_DISABLED=1 PYTHONPATH=".:$ROOT" VACCINEPATH_DATA_DIR="$ROOT/data" \
       nohup uv run --no-sync uvicorn app.gateway.app:app --port $PORT > "$LOG" 2>&1 &)
     for i in $(seq 1 60); do
       curl -sf -o /dev/null "http://localhost:$PORT/api/scheduled-tasks" && { echo "gateway up (${i}s), log: $LOG"; exit 0; }

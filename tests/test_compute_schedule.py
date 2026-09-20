@@ -129,3 +129,17 @@ def test_records_of_other_child_ignored(child):
     other = rec("x", date(2025, 1, 15), [VaccineCode.BCG], child_id="someone-else")
     res = compute_schedule(ScheduleInput(child=child, records=[other], as_of=date(2025, 1, 20)))
     assert item(res, VaccineCode.BCG, 1).status == ScheduleStatus.due
+
+
+def test_hpv_outside_school_before_age_9_is_upcoming():
+    girl = Child(id="p", family_id="f", name="P", date_of_birth=date(2024, 6, 1), sex=Sex.female, attends_local_school=False)
+    res = compute_schedule(ScheduleInput(child=girl, records=[], as_of=date(2026, 9, 20)))
+    d1 = item(res, VaccineCode.HPV2, 1)
+    assert d1.status == ScheduleStatus.upcoming and d1.due_date == date(2033, 6, 1) and d1.overdue_date == date(2039, 6, 1)
+
+
+def test_hpv_outside_school_15_to_17_three_doses():
+    girl = Child(id="p", family_id="f", name="P", date_of_birth=date(2011, 1, 1), sex=Sex.female, attends_local_school=False)
+    res = compute_schedule(ScheduleInput(child=girl, records=[], as_of=date(2026, 9, 20)))  # 15 岁 8 个月
+    hpv = [i for i in res.items if i.vaccine == VaccineCode.HPV2]
+    assert [i.dose_number for i in hpv] == [1, 2, 3] and "3-dose" in hpv[0].reason

@@ -21,7 +21,10 @@
 - 调度器默认关闭：`config.yaml` 里 `scheduler.enabled: true`
 - 鉴权：**用 `DEER_FLOW_AUTH_DISABLED=1` 关掉**（代码内置的非 production 开关），所有请求免 token。不走 PAT
 - 模型：DeepSeek `deepseek-chat`（`langchain_openai:ChatOpenAI` + `base_url: https://api.deepseek.com/v1`），key 在 `deer-flow/.env` 的 `DEEPSEEK_API_KEY`，`config.yaml` 用 `$DEEPSEEK_API_KEY` 引用
-- 启停：`scripts/gateway.sh start|stop|status|log`（会显式导出 `.env`）；验收：`scripts/phase0_smoke.sh`（2026-09-20 已 PASS）
+- 启停：`scripts/gateway.sh start|stop|status|log`（会显式导出 `.env`，`PYTHONPATH` 含仓库根，`VACCINEPATH_DATA_DIR=data/`）；验收：`scripts/phase0_smoke.sh`、`scripts/phase2_demo.sh`（2026-09-20 均 PASS）
+- 工具挂载：`use:` 必须指向 LangChain `BaseTool` 实例（`@tool` 装饰的函数即可）；lead agent 默认加载全部 `tool_groups`。片段在 `vaccinepath/deerflow_tools.yaml`，`setup.sh` 生成 config.yaml 时自动追加
+- thread goal（`PUT /api/threads/{id}/goal`，body `{objective, max_continuations}`）的语义是：每轮结束后由评估模型判断 objective 是否达成，未达成就自动续跑（默认最多 8 次）。所以 objective 要写成**单次唤醒的完成条件**，不能写成"永远保持计划在轨"，否则每次唤醒空转
+- 定时任务的运行记录 `GET /api/threads/{tid}/runs/{run_id}/messages?limit=200` 返回 `{data: [事件], has_more}`，工具调用在 `llm.ai.response` 事件的 `content.tool_calls` 里
 
 ## 范围：只做 core，stretch 明确不做
 **core 闭环（必须全部做出来）：**

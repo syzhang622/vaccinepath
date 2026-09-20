@@ -28,9 +28,18 @@ if [ ! -f "$DF/config.yaml" ]; then
   echo "==> 生成 config.yaml"
   python3 - "$DF" <<'PY'
 import sys, pathlib
-df = pathlib.Path(sys.argv[1])
+df = pathlib.Path(sys.argv[1]); root = df.parent
 s = (df / "config.example.yaml").read_text()
 s = s.replace("scheduler:\n  enabled: false", "scheduler:\n  enabled: true", 1)
+s = s.replace("tool_groups:\n", "tool_groups:\n  - name: vaccinepath\n", 1)
+# 把 vaccinepath 工具追加到 tools: 段末尾（下一个顶层键之前）
+tools_snippet = (root / "vaccinepath" / "deerflow_tools.yaml").read_text()
+i = s.index("\ntools:\n") + 1
+j = s.index("\n", i)
+import re
+m = re.search(r"^\S", s[j:], re.M)  # tools: 之后第一个顶层键
+k = j + m.start()
+s = s[:k] + tools_snippet + "\n" + s[k:]
 s = s.replace("models:\n", """models:
   - name: deepseek-chat
     display_name: DeepSeek Chat

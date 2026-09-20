@@ -165,16 +165,22 @@ def _hpv(child: Child, records: list[VaccinationRecord], as_of: date) -> list[Sc
             plan = rule
             break
     if plan is None:
-        return [
-            ScheduleItem(
-                vaccine=VaccineCode.HPV2,
-                dose_number=1,
-                label="D1",
-                status=ScheduleStatus.needs_clinician if ref_age < 9 * 12 else ScheduleStatus.not_applicable,
-                reason=f"校外 HPV2 规则仅覆盖 9-17 岁，当前参考年龄 {ref_age} 个月",
-                source_ref=f"{P} p3",
-            )
-        ]
+        rules = ncis.hpv_outside_school()
+        first_lo = rules[0]["age_months_range"][0]
+        if ref_age < first_lo:
+            # 未满 9 岁：按 9-14 岁方案排，到期 = 满 9 岁，逾期 = 该段终点 +1 月龄
+            plan = rules[0]
+        else:
+            return [
+                ScheduleItem(
+                    vaccine=VaccineCode.HPV2,
+                    dose_number=1,
+                    label="D1",
+                    status=ScheduleStatus.not_applicable,
+                    reason=f"校外 HPV2 规则仅覆盖 9-17 岁，当前参考年龄 {ref_age} 个月",
+                    source_ref=f"{P} p3",
+                )
+            ]
     offsets = plan["schedule_months"]
     lo_months = plan["age_months_range"][0]
     d1 = recs[0].date if recs else max(add_months(dob, lo_months), as_of)
