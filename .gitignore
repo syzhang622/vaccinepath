@@ -1,0 +1,26 @@
+# DeerFlow 上游源码：队友用 scripts/setup.sh 自己 clone，不进本仓库
+deer-flow/
+
+# 密钥与本地配置（即使 deer-flow/ 未忽略也绝不能进 git）
+.env
+.env.*
+config.yaml
+*.bak
+
+# 日志与运行数据
+logs/
+*.log
+.deer-flow/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
