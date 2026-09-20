@@ -4,71 +4,54 @@ NTU CA6117 *Agentic AI in Healthcare* 课程原型：一个**长期运行、有�
 
 ## 本地环境说明（组员必读）
 
-目标：从零到 `pytest` 全绿 + `phase0_smoke.sh` 通过，约 10 分钟。所有步骤在仓库根目录执行。
+### 一、所有人先装这三样
 
-### 0. 前置
+1. git
+2. uv（Python 包管理器）：macOS/Linux 终端里跑 `curl -LsSf https://astral.sh/uv/install.sh | sh`（或 `brew install uv`），装完重开终端
+3. Python 3.12 不用单独装，uv 会自动拉
 
-| 需要 | 版本 | 装法 |
-|---|---|---|
-| macOS / Linux | — | Windows 请用 WSL2 |
-| git | 任意 | — |
-| [uv](https://docs.astral.sh/uv/) | ≥ 0.5 | `brew install uv` 或 `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
-| Python | 3.12+ | **不用自己装**，uv 会按 `pyproject.toml` 自动下载 |
-| DeepSeek API key | — | 向组长要，形如 `sk-...` |
-
-不需要 Docker、Node、Redis、nginx。
-
-### 1. clone + 一键准备
+### 二、只想跑规则引擎、写/看测试用例（不需要任何 key）
 
 ```bash
-git clone git@github.com:syzhang622/vaccinepath.git
+git clone https://github.com/syzhang622/vaccinepath.git
 cd vaccinepath
-DEEPSEEK_API_KEY=sk-你的key scripts/setup.sh
-```
-
-`setup.sh` 做四件事，重复执行安全：
-1. 把 DeerFlow 源码 clone 到 `deer-flow/`（锁定到 commit `1e3bfa0`，这个目录整个 gitignored，**不要往里写代码**）
-2. `uv sync` 装 DeerFlow 后端依赖（首次约 2–3 分钟）和本仓库依赖
-3. 生成 `deer-flow/config.yaml`：开 scheduler、启用 `deepseek-chat`、挂上我们的 `vp_*` 工具
-4. 生成 `deer-flow/.env` 并写入 `DEEPSEEK_API_KEY`（没传环境变量就留空，之后手动填）
-
-### 2. 跑测试（不需要 gateway、不需要 key）
-
-```bash
+uv sync
 uv run pytest            # 期望：71 passed
 ```
 
-规则引擎、数据模型、工具层全在这里，改 `vaccinepath/` 下任何东西先跑它。
+看到全部 passed 就说明环境对了。规则说明在 `docs/rule_engine.md`，四个函数在 `vaccinepath/rules/`，测试在 `tests/`。改 `vaccinepath/` 下任何东西先跑它。
 
-### 3. 起 gateway + 端到端验证
+### 三、要跑完整 agent 的，在二的基础上再做三步
 
-```bash
-scripts/gateway.sh start       # 后台起 DeerFlow gateway，http://localhost:8001，鉴权已关
-scripts/phase0_smoke.sh        # 建线程 → 跑一轮 → 定时任务 → 手动触发 → 验证状态延续；末尾打印 PHASE 0 PASS
-```
+4. 运行 `scripts/setup.sh`
+   会自动下载 DeerFlow（后端框架，已锁定到 commit `1e3bfa0`，放在 `deer-flow/`，整个目录 gitignored，**不要往里写代码**）、装依赖、生成 `deer-flow/config.yaml`（开 scheduler、启用 deepseek-chat、挂上我们的 `vp_*` 工具）和 `deer-flow/.env`。第一次要几分钟，依赖比较多，别以为卡死了。重复执行安全。
+5. 准备一个 DeepSeek 的 API key
+   platform.deepseek.com 注册，充几块钱够用几周。填进 `deer-flow/.env` 里的 `DEEPSEEK_API_KEY=`。（也可以在第 4 步直接 `DEEPSEEK_API_KEY=sk-xxx scripts/setup.sh`，脚本会替你写进去。）
+6. 启动并验证
+   ```bash
+   scripts/gateway.sh start      # 起后端，http://localhost:8001，鉴权已关
+   scripts/phase0_smoke.sh       # 7 步自检，末尾 PHASE 0 PASS 即通
+   ```
+   其他命令：`scripts/gateway.sh status|log|stop`，日志在 `deer-flow/logs/gateway.log`。
 
-其他命令：`scripts/gateway.sh status|log|stop`。日志在 `deer-flow/logs/gateway.log`。
+想看完整闭环：`scripts/phase2_demo.sh`（重置 mock 家庭 → 建 agent → 唤醒#1 → 模拟家长动作 → 唤醒#2 → 打印 `data/db.json` 证据）。分步是 `scripts/agent_setup.sh --reset` 和 `scripts/agent_wake.sh`（手动触发一次唤醒 = 前端"快进到下一次检查"）。
 
-### 4. 跑 agent（可选，看完整闭环）
+### 四、注意
 
-```bash
-scripts/phase2_demo.sh         # 重置 mock 家庭 → 建 agent → 唤醒#1 → 模拟家长动作 → 唤醒#2 → 打印 data/db.json 证据
-```
+- Windows：脚本是 bash 写的，**推荐 WSL**；Git Bash 未验证（DeerFlow 后端在原生 Windows 上能否起来我们没测过），PowerShell 不行。
+- `deer-flow/.env` 和 `deer-flow/config.yaml` 不要提交到 git，里面有 key；`deer-flow/`、`data/`、`logs/` 也都已在 `.gitignore` 里。推之前 `git status` 看一眼。
+- 前端做出来后会多一条启动命令，到时候群里补一句。
 
-或分步：`scripts/agent_setup.sh --reset` 建 agent，`scripts/agent_wake.sh` 手动触发一次唤醒（= 前端"快进到下一次检查"）。
-
-### 5. 哪些文件不能提交
-
-`deer-flow/`、`deer-flow/.env`、`deer-flow/config.yaml`、`data/`、`logs/` 都在 `.gitignore` 里。推之前 `git status` 看一眼，**API key 绝不能进 git**。
+有卡住的直接把报错贴群里。
 
 ### 排错
 
 | 现象 | 原因 / 处理 |
 |---|---|
 | `setup.sh` 报 `缺 uv` | 装 uv 后重开终端 |
-| `gateway.sh start` 说 `already up on :8001` | 别人的 gateway 占着端口：`scripts/gateway.sh stop` 或 `lsof -i :8001` |
+| `gateway.sh start` 说 `already up on :8001` | 别的 gateway 占着端口：`scripts/gateway.sh stop` 或 `lsof -i :8001` |
 | `phase0_smoke.sh` 第 2 步失败，日志 `No chat models are configured` | `deer-flow/.env` 里 `DEEPSEEK_API_KEY` 为空；填好后 `scripts/gateway.sh stop && scripts/gateway.sh start` |
-| 第 2 步 401 / `Authentication Fails` | key 错了 |
+| 第 2 步 401 / `Authentication Fails` | key 错了或余额为 0 |
 | `ModuleNotFoundError: vaccinepath`（gateway 日志） | 没用 `scripts/gateway.sh` 起的 gateway（它负责设 `PYTHONPATH`） |
 | 想换回干净的 mock 数据 | `scripts/agent_setup.sh --reset` 或 `cp vaccinepath/data/mock_family.json data/db.json` |
 | 想升级 DeerFlow | 改 `scripts/setup.sh` 里的 `DEERFLOW_COMMIT`，重跑 `phase0_smoke.sh` 确认接口没变 |

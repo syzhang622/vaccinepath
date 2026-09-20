@@ -5,7 +5,6 @@
 
 from __future__ import annotations
 
-import fcntl
 import json
 import os
 import shutil
@@ -16,6 +15,23 @@ from pathlib import Path
 from typing import Any, Iterator
 
 from pydantic import BaseModel
+
+try:  # 文件锁：Unix 用 fcntl；Windows 原生 Python 没有，退化为无锁（单进程 demo 可接受）
+    import fcntl
+
+    def _lock(f):
+        fcntl.flock(f, fcntl.LOCK_EX)
+
+    def _unlock(f):
+        fcntl.flock(f, fcntl.LOCK_UN)
+except ImportError:  # pragma: no cover
+
+    def _lock(f):
+        pass
+
+    def _unlock(f):
+        pass
+
 
 from vaccinepath.models import Actor, AuditLogEntry, CheckIn, Child, Family, Task, TaskStatus, TaskType, VaccinationRecord
 
@@ -60,7 +76,7 @@ class Store:
     def _locked(self) -> Iterator[dict[str, Any]]:
         lock = self.path.with_suffix(".lock")
         with open(lock, "w") as lf:
-            fcntl.flock(lf, fcntl.LOCK_EX)
+            _lock(lf)
             try:
                 data = json.loads(self.path.read_text())
                 yield data
@@ -68,7 +84,7 @@ class Store:
                 tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2, default=str))
                 tmp.replace(self.path)
             finally:
-                fcntl.flock(lf, fcntl.LOCK_UN)
+                _unlock(lf)
 
     def read(self) -> dict[str, Any]:
         return json.loads(self.path.read_text())
