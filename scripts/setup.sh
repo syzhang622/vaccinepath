@@ -35,6 +35,8 @@ import sys, pathlib
 df = pathlib.Path(sys.argv[1]); root = df.parent
 s = (df / "config.example.yaml").read_text()
 s = s.replace("scheduler:\n  enabled: false", "scheduler:\n  enabled: true", 1)
+# 关掉 DeerFlow 跨线程长期记忆：VaccinePath 的状态只来自 data/db.json，线程只是工作记忆
+s = s.replace("memory:\n  enabled: true\n  injection_enabled: true", "memory:\n  enabled: false\n  injection_enabled: false", 1)
 s = s.replace("tool_groups:\n", "tool_groups:\n  - name: vaccinepath\n", 1)
 # 把 vaccinepath 工具追加到 tools: 段末尾（下一个顶层键之前）
 tools_snippet = (root / "vaccinepath" / "deerflow_tools.yaml").read_text()
