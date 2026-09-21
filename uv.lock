@@ -1531,8 +1531,10 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "playwright" },
     { name = "pytest" },
+]
+e2e = [
+    { name = "playwright" },
 ]
 
 [package.metadata]
@@ -1545,10 +1547,8 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
-dev = [
-    { name = "playwright", specifier = ">=1.63.0" },
-    { name = "pytest", specifier = ">=8.0" },
-]
+dev = [{ name = "pytest", specifier = ">=8.0" }]
+e2e = [{ name = "playwright", specifier = ">=1.50" }]
 
 [[package]]
 name = "watchdog"
