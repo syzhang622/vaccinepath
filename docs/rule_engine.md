@@ -114,7 +114,7 @@ NCIS 不涉及接种后监测，本函数的判据来自两份新加坡官方页
 `tests/` 下每个函数 ≥3 正例 ≥3 反例，另有 `test_ncis_data.py` 把第 1 页表格逐格钉死（改 JSON 会红）。
 
 ```bash
-uv run pytest            # 62 passed
+uv run pytest            # 82 passed（含工具层与前端）
 uv run pytest -k schedule -v
 ```
 

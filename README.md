@@ -16,7 +16,7 @@ NTU CA6117 *Agentic AI in Healthcare* 课程原型：一个**长期运行、有�
 git clone https://github.com/syzhang622/vaccinepath.git
 cd vaccinepath
 uv sync
-uv run pytest            # 期望：71 passed
+uv run pytest            # 期望：82 passed
 ```
 
 看到全部 passed 就说明环境对了。规则说明在 `docs/rule_engine.md`，四个函数在 `vaccinepath/rules/`，测试在 `tests/`。改 `vaccinepath/` 下任何东西先跑它。
@@ -40,7 +40,7 @@ uv run pytest            # 期望：71 passed
 
 - Windows：脚本是 bash 写的，**推荐 WSL**；Git Bash 未验证（DeerFlow 后端在原生 Windows 上能否起来我们没测过），PowerShell 不行。
 - `deer-flow/.env` 和 `deer-flow/config.yaml` 不要提交到 git，里面有 key；`deer-flow/`、`data/`、`logs/` 也都已在 `.gitignore` 里。推之前 `git status` 看一眼。
-- 前端做出来后会多一条启动命令，到时候群里补一句。
+- 前端：`scripts/ui.sh` 起 Streamlit，浏览器开 http://localhost:8501（六页：档案 / 接种时间线 / 待办与提醒 / 接种后打卡 / 人工审核 / 日志；侧栏「⏩ 快进到下一次检查」= 手动触发 agent 唤醒，需要 gateway 在线且已跑过 `scripts/agent_setup.sh`）。
 
 有卡住的直接把报错贴群里。
 
@@ -62,7 +62,7 @@ uv run pytest            # 期望：71 passed
 |---|---|---|
 | 后端 | [DeerFlow](https://github.com/bytedance/deer-flow) gateway：线程持久状态、定时任务、工具挂载。**不改它的源码** | `deer-flow/`（不进 git，`scripts/setup.sh` 自动 clone） |
 | 规则引擎 | 纯确定性 Python：排程、查重、接种前筛查、接种后升级判定。**不经过 LLM**，可单元测试 | `vaccinepath/rules/` |
-| 前端 | Streamlit | `vaccinepath/`（Phase 3 起） |
+| 前端 | Streamlit 六页，直接调规则引擎与工具函数，只有 trigger/运行记录走 gateway HTTP | `vaccinepath/ui/` |
 | 数据 | 全部 mock（JSON/SQLite）+ NCIS 日程结构化表 | `vaccinepath/`、`docs/` |
 
 ## 目录
@@ -83,7 +83,8 @@ uv run pytest            # 期望：71 passed
 │   ├── agent_setup.sh     建 agent（线程 + goal + 定时任务）
 │   ├── agent_wake.sh      手动触发一次唤醒
 │   ├── simulate_parent.py 模拟家长动作（demo）
-│   └── phase2_demo.sh     Phase 2 验收脚本
+│   ├── phase2_demo.sh     Phase 2 验收脚本
+│   └── ui.sh              起 Streamlit 前端 :8501
 ├── deer-flow/             DeerFlow 上游源码（gitignored）
 ├── vaccinepath/
 │   ├── models.py          全部 Pydantic 模型（档案、记录、四函数入参出参）
@@ -94,6 +95,7 @@ uv run pytest            # 期望：71 passed
 │   ├── store.py           mock 数据层（data/db.json + 文件锁）
 │   ├── tools.py           挂到 DeerFlow 的 13 个 vp_* 工具
 │   ├── deerflow_tools.yaml  config.yaml 的 tools: 片段（setup.sh 自动追加）
-│   └── agent/prompts.py   持续目标 + 唤醒 prompt
-└── tests/                 每函数 ≥3 正例 ≥3 反例 + 表格逐格钉死
+│   ├── agent/prompts.py   持续目标 + 唤醒 prompt
+│   └── ui/                Streamlit：app.py 入口 + pages/ 六页 + gateway.py HTTP 客户端
+└── tests/                 规则引擎 / 工具层 / 前端（AppTest 无头渲染）
 ```

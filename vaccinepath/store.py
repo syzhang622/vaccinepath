@@ -97,6 +97,10 @@ class Store:
         with self._locked() as d:
             d[collection][obj.id] = _dump(obj)  # type: ignore[attr-defined]
 
+    def put_doc(self, collection: str, doc: dict[str, Any]) -> None:
+        with self._locked() as d:
+            d[collection][doc["id"]] = doc
+
     def get(self, collection: str, id: str) -> dict[str, Any] | None:
         return self.read()[collection].get(id)
 
