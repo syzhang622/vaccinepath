@@ -75,7 +75,8 @@ uv run pytest            # 期望：82 passed
 │   ├── proposal_v2.md     课程 proposal
 │   ├── ncis_moh_2026-04.pdf  MOH 官方 NCIS 表（2026-04-01）
 │   ├── rule_engine.md     规则引擎说明：总原则、约定、四函数判定表
-│   └── sources/           KKH / HealthHub 官方页面原文摘录（接种后升级判据）
+│   ├── sources/           KKH / HealthHub 官方页面原文摘录（接种后升级判据）
+│   └── demo_script.md     5 分钟录屏脚本 + 7 条验收要素对照
 ├── scripts/
 │   ├── setup.sh           一键准备环境
 │   ├── gateway.sh         起停 DeerFlow gateway

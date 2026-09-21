@@ -73,4 +73,4 @@ DeerFlow 起来，能通过 API 建线程、跑一轮、建一个定时任务并
 ```
 
 ## 现在开始
-Phase 0 计划已确认（2026-09-20）：uv 直跑 gateway + AUTH_DISABLED。按分阶段验收往下走。
+Phase 0–3 已完成并经组长实测（2026-09-22）；Phase 4 demo 脚本在 `docs/demo_script.md`。
