@@ -88,3 +88,16 @@ def test_tasks_page_screening_with_flag_routes_to_review():
     at = page("tasks")
     assert len(at.radio) == 0  # 已筛查的任务不再显示问卷
     assert len(Store().read()["screenings"]) == 1
+
+
+def test_screening_defaults_are_all_no_and_clear():
+    from vaccinepath import tools
+
+    tools.vp_create_tasks.invoke({"child_id": "child-kai", "items": [{"vaccine": "INF", "dose_number": 3, "label": "annual", "due_date": "2027-02-12", "status": "due"}]})
+    at = page("tasks")
+    assert all(r.value == "no" for r in at.radio)
+    at.button[0].click().run()
+    assert not at.exception
+    scr = list(Store().read()["screenings"].values())[0]
+    assert scr["result"]["outcome"] == "CLEAR" and all(v == "no" for k, v in scr["answers"].items() if k in ("previous_serious_reaction", "known_allergy", "current_illness", "current_fever", "immune_condition", "immunosuppressive_medication"))
+    assert "无标记项" in at.session_state["_flash"][1]

@@ -41,7 +41,7 @@ SCREEN_FIELD_LABEL: dict[str, str] = {
     "immunosuppressive_medication": "正在使用免疫抑制药物",
 }
 
-TRI_LABEL: dict[TriState, str] = {TriState.yes: "是", TriState.no: "否", TriState.unsure: "不确定"}
+TRI_LABEL: dict[TriState, str] = {TriState.no: "否", TriState.yes: "是", TriState.unsure: "不确定"}  # 顺序即单选默认值：否
 
 OUTCOME_LABEL = {"CONTINUE": "继续观察", "WARN": "建议看医生", "URGENT": "请立即前往儿童急诊", "CLEAR": "无标记项", "PROFESSIONAL_REVIEW_REQUIRED": "需医生审核"}
 
