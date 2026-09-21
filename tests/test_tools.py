@@ -27,7 +27,7 @@ def test_list_children_seed():
 def test_check_schedule_returns_json_not_repr():
     d = call(tools.vp_check_schedule, child_id="child-priya")
     assert isinstance(d["items"], list) and isinstance(d["items"][0], dict) and "status" in d["items"][0]
-    assert d["counts"]["overdue"] >= 15 and d["requires_clinician_review"]
+    assert d["counts"]["overdue"] == 4 and d["requires_clinician_review"]
 
 
 def test_create_tasks_idempotent():

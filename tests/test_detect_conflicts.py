@@ -86,3 +86,9 @@ def test_mmrv_dose1_under_48m_flagged(child):
 def test_hpv_on_boy_flagged(boy):
     r = detect_conflicts(ConflictInput(child=boy, records=[rec("h", date(2026, 9, 1), [VaccineCode.HPV2], child_id="c2")], as_of=AS_OF))
     assert "hpv_not_indicated" in codes(r) and r.requires_clinician_review
+
+
+def test_parent_reported_record_is_warning_not_review(child):
+    recs = [rec("p1", date(2026, 9, 1), [VaccineCode.INF], source=RecordSource.parent_reported)]
+    r = detect_conflicts(ConflictInput(child=child, records=recs, as_of=AS_OF))
+    assert codes(r) == ["overseas_unverified"] and r.issues[0].severity == Severity.warning and not r.requires_clinician_review

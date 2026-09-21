@@ -29,7 +29,7 @@ from vaccinepath.models import (
     VaccineCode,
 )
 from vaccinepath.rules import compute_schedule, detect_conflicts, post_vaccination_escalate, pre_vaccination_screen
-from vaccinepath.store import Store, new_id, now
+from vaccinepath.store import Store, new_id, now, today as _today
 
 DISCLAIMER = "本信息不构成诊断，不替代医生建议；如有疑问请咨询医生。"
 
@@ -52,10 +52,6 @@ def _default(o: Any) -> Any:
 
 def _j(obj: Any) -> str:
     return json.dumps(obj, ensure_ascii=False, default=_default)
-
-
-def _today() -> date:
-    return now().date()
 
 
 # ---------------------------------------------------------------------------
@@ -143,8 +139,8 @@ def vp_list_tasks(status: str = "") -> str:
     out, repeat, escalate = [], {}, {}
     for t in tasks:
         d = t.model_dump(mode="json")
-        # 未响应 = 提醒是在本轮唤醒开始之前发的（不是本轮刚发的），且已超过重复窗口
-        d["unanswered"] = bool(t.status == TaskStatus.awaiting_parent and t.last_reminded_at and t.last_reminded_at < run_started and now() - t.last_reminded_at >= timedelta(hours=repeat_h))
+        # 未响应 = 任务还没完成、提醒是在本轮唤醒开始之前发的（不是本轮刚发的）、且已超过重复窗口。与审核状态无关。
+        d["unanswered"] = bool(t.status not in (TaskStatus.done, TaskStatus.cancelled) and t.last_reminded_at and t.last_reminded_at < run_started and now() - t.last_reminded_at >= timedelta(hours=repeat_h))
         if d["unanswered"]:
             (repeat if t.reminder_count < max_r else escalate).setdefault(t.child_id, []).append(t.id)
         out.append(d)
@@ -253,7 +249,8 @@ def vp_send_reminder(child_id: str, task_ids: list[str], message: str) -> str:
         message = f"{message}\n\n{DISCLAIMER}"
     n = s.notify(child_id, None, "mock_push", message)
     for t in covered:
-        s.update_task(t.id, status=TaskStatus.awaiting_parent, reminder_count=t.reminder_count + 1, last_reminded_at=now())
+        # 只有"待处理"变"等家长回应"；"等人工审核"保持不变（审核与提醒是两条独立的线）
+        s.update_task(t.id, status=TaskStatus.awaiting_parent if t.status == TaskStatus.open else t.status, reminder_count=t.reminder_count + 1, last_reminded_at=now())
     s.log(Actor.agent, "send_reminder", f"child={child_id} tasks={[t.id for t in covered]}", message, child_id=child_id)
     return _j({"sent": True, "notification_id": n["id"], "covered": [t.id for t in covered], "exhausted": [t.id for t in exhausted]})
 
@@ -302,7 +299,10 @@ def vp_evaluate_checkin(checkin_id: str) -> str:
     res = post_vaccination_escalate(EscalationInput(child=s.child(ck.child_id), checkin=ck))
     s.update_doc("checkins", checkin_id, evaluation=res)
     s.log(Actor.rule_engine, "post_vaccination_escalate", f"checkin={checkin_id}", f"{res.outcome}: {[t.rule for t in res.triggers]}", child_id=ck.child_id, source=res.source_ref)
-    return _j({"result": res, "must_request_review": res.outcome != EscalationOutcome.CONTINUE})
+    from vaccinepath.labels import trigger_text
+
+    return _j({"result": res, "triggers_text": [trigger_text(t) for t in res.triggers], "must_request_review": res.outcome != EscalationOutcome.CONTINUE,
+               "review_reason": f"接种后打卡判定 {res.outcome.value}（接种后第 {ck.days_since_vaccination} 天）：" + "；".join(trigger_text(t) for t in res.triggers) + f" [{res.source_ref}]" if res.outcome != EscalationOutcome.CONTINUE else None})
 
 
 @tool("vp_evaluate_screening", parse_docstring=True)
@@ -320,7 +320,10 @@ def vp_evaluate_screening(screening_id: str) -> str:
     res = pre_vaccination_screen(inp)
     s.update_doc("screenings", screening_id, result=res)
     s.log(Actor.rule_engine, "pre_vaccination_screen", f"screening={screening_id}", f"{res.outcome} flags={[f.field for f in res.flags]}", child_id=raw["child_id"], source=res.source_ref)
-    return _j({"result": res, "must_request_review": res.outcome != ScreenOutcome.CLEAR})
+    from vaccinepath.labels import screen_flag_text
+
+    return _j({"result": res, "must_request_review": res.outcome != ScreenOutcome.CLEAR,
+               "review_reason": ("接种前筛查有标记项：" + "；".join(screen_flag_text(f) for f in res.flags) + f" [{res.source_ref}]") if res.outcome != ScreenOutcome.CLEAR else None})
 
 
 @tool("vp_log", parse_docstring=True)

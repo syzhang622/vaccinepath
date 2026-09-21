@@ -27,7 +27,7 @@ def test_profiles_shows_seed_children_and_conflicts():
     at = page("profiles")
     text = " ".join(m.value for m in at.markdown)
     assert "Mei" in text and "Kai" in text and "Priya" in text
-    assert "overseas_unverified" in text  # Priya 的海外记录校验提示
+    assert "overseas_unverified" in text and "earlier_than_schedule" in text  # Priya 的海外记录 + 9 个月 MR
 
 
 def test_timeline_counts_for_priya():
@@ -35,7 +35,7 @@ def test_timeline_counts_for_priya():
     at.selectbox[0].select("child-priya").run()
     assert not at.exception
     labels = {m.label: m.value for m in at.metric}
-    assert labels["🔴 已逾期"] == "16" and labels["🩺 需医生确认"] == "1"
+    assert labels["🔴 已逾期"] == "4" and labels["✅ 已完成"] == "20"
 
 
 def test_checkin_urgent_routes_to_review():
@@ -66,6 +66,7 @@ def test_review_queue_approve_marks_done_and_verifies_record():
     assert not at.exception
     s = Store()
     assert s.get("records", "rec-priya-01")["verified"] is True
+    assert "仍有 6 条记录未核实" in at.session_state["_flash"][1]
     assert all(t.status.value == "done" for t in s.tasks("child-priya") if t.type.value == "professional_review")
     assert any(e["human_decision"] == "approved" for e in s.audit_log("child-priya"))
 
@@ -76,8 +77,14 @@ def test_tasks_page_screening_with_flag_routes_to_review():
     tools.vp_create_tasks.invoke({"child_id": "child-mei", "items": [{"vaccine": "DTaP", "dose_number": 4, "label": "B1", "due_date": "2026-07-15", "status": "overdue"}]})
     at = page("tasks")
     assert not at.exception
-    at.radio[0].set_value("yes")  # 既往严重反应
+    at.radio[2].set_value("yes")  # 当前正在生病
     at.button[0].click().run()  # 提交筛查（第一个 form 的按钮）
     assert not at.exception
     s = Store()
-    assert any(t.type.value == "professional_review" and "接种前筛查" in (t.notes or "") for t in s.tasks("child-mei"))
+    review = next(t for t in s.tasks("child-mei") if t.type.value == "professional_review")
+    assert "当前正在生病＝是" in review.notes and "current_fever" not in review.notes
+    assert "有标记项" in at.session_state["_flash"][1]
+    # 幂等：同一任务再提交一次不会再写第二份筛查、审核单理由不重复
+    at = page("tasks")
+    assert len(at.radio) == 0  # 已筛查的任务不再显示问卷
+    assert len(Store().read()["screenings"]) == 1

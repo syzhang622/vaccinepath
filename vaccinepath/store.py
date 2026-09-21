@@ -10,8 +10,9 @@ import os
 import shutil
 import uuid
 from contextlib import contextmanager
-from datetime import UTC, datetime
+from datetime import date, datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 from typing import Any, Iterator
 
 from pydantic import BaseModel
@@ -48,8 +49,16 @@ def db_path() -> Path:
     return data_dir() / "db.json"
 
 
+SG_TZ = ZoneInfo("Asia/Singapore")
+
+
 def now() -> datetime:
-    return datetime.now(UTC)
+    """全系统统一用新加坡时间（UI 与 agent 工具必须同一天，否则晚上录入的记录会被判成"晚于今天"）。"""
+    return datetime.now(SG_TZ)
+
+
+def today() -> date:
+    return now().date()
 
 
 def new_id(prefix: str) -> str:

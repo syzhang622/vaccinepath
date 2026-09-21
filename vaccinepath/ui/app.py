@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import streamlit as st
 
-from vaccinepath.store import SEED_PATH, Store
+from vaccinepath.agent.setup import setup_agent
+from vaccinepath.store import Store
 from vaccinepath.ui import gateway
+from vaccinepath.ui.common import show_flash
 from vaccinepath.ui.pages import checkin, logs, profiles, review, tasks, timeline
 
 st.set_page_config(page_title="VaccinePath Family SG", page_icon="💉", layout="wide")
@@ -18,8 +20,8 @@ def sidebar():
     cfg = gateway.agent_config()
     st.sidebar.markdown(("🟢 gateway 在线" if up else "🔴 gateway 离线") + ("  ·  agent 已建" if cfg else "  ·  agent 未建"))
     state = Store().agent_state()
-    if state:
-        st.sidebar.markdown(f"已唤醒 **{state.get('wake_ups', 0)}** 次 · 上次 {str(state.get('last_wake_up', ''))[:16].replace('T', ' ')}")
+    if state.get("wake_ups"):
+        st.sidebar.markdown(f"已唤醒 **{state['wake_ups']}** 次 · 上次 {str(state.get('last_wake_up', ''))[:16].replace('T', ' ')}")
 
     if st.sidebar.button("⏩ 快进到下一次检查", type="primary", disabled=not (up and cfg), width="stretch", help="= POST /api/scheduled-tasks/{id}/trigger，不等 cron"):
         with st.sidebar.status("agent 醒来了，正在检查…", expanded=True) as box:
@@ -36,22 +38,37 @@ def sidebar():
             st.markdown(r["reply"] or "（无回复）")
 
     with st.sidebar.expander("演示工具"):
-        if st.button("重置为 mock 家庭数据", width="stretch"):
-            Store().reset_from_seed(SEED_PATH)
-            st.session_state.pop("last_wake", None)
+        st.caption("重置 = 数据回到 mock 家庭 + 重建 agent（新线程，记忆清零）")
+        if st.button("重置演示（数据 + agent）", width="stretch", disabled=not up):
+            try:
+                setup_agent(reset_data=True)
+                st.session_state.pop("last_wake", None)
+                st.session_state["_flash"] = ("success", "已重置：数据回到 mock 家庭，agent 已重建（唤醒计数 0）。")
+            except Exception as e:  # noqa: BLE001
+                st.session_state["_flash"] = ("error", f"重置失败：{e}")
             st.rerun()
-        st.caption("重置后需要重新建 agent：`scripts/agent_setup.sh`（线程里的记忆不会自动清）")
+
+
+def _page(fn):
+    """每页自己渲染侧栏（不放在 st.navigation().run() 之前），避免公共元素在页面重跑时重复渲染。"""
+
+    def run():
+        sidebar()
+        show_flash()
+        fn()
+
+    run.__name__ = fn.__module__.rsplit(".", 1)[-1]
+    return run
 
 
 def main():
-    sidebar()
     pages = [
-        st.Page(profiles.render, title="档案", icon="👪", url_path="profiles", default=True),
-        st.Page(timeline.render, title="接种时间线", icon="📅", url_path="timeline"),
-        st.Page(tasks.render, title="待办与提醒", icon="✅", url_path="tasks"),
-        st.Page(checkin.render, title="接种后打卡", icon="🌡️", url_path="checkin"),
-        st.Page(review.render, title="人工审核", icon="🩺", url_path="review"),
-        st.Page(logs.render, title="日志", icon="📜", url_path="logs"),
+        st.Page(_page(profiles.render), title="档案", icon="👪", default=True),
+        st.Page(_page(timeline.render), title="接种时间线", icon="📅", url_path="timeline"),
+        st.Page(_page(tasks.render), title="待办与提醒", icon="✅", url_path="tasks"),
+        st.Page(_page(checkin.render), title="接种后打卡", icon="🌡️", url_path="checkin"),
+        st.Page(_page(review.render), title="人工审核", icon="🩺", url_path="review"),
+        st.Page(_page(logs.render), title="日志", icon="📜", url_path="logs"),
     ]
     st.navigation(pages).run()
 

@@ -131,11 +131,16 @@ def _hpv(records: list[VaccinationRecord], sex: Sex) -> list[ConflictIssue]:
 
 
 def _overseas(records: list[VaccinationRecord]) -> list[ConflictIssue]:
-    return [
-        _issue("overseas_unverified", Severity.review, [r], f"{'海外' if r.source == RecordSource.overseas else '家长自报'}记录（{r.country or '未填国家'}，{r.product or '/'.join(r.vaccines)}）未核实，对照 NCIS 前需人工确认抗原与剂次", "proposal §4 核心范围 2")
-        for r in records
-        if r.source in (RecordSource.overseas, RecordSource.parent_reported) and not r.verified
-    ]
+    """海外记录未核实 → review（对照 NCIS 前必须人工确认）；家长在本 app 里自报的记录 → 仅 warning，不进审核队列。"""
+    out = []
+    for r in records:
+        if r.verified:
+            continue
+        if r.source == RecordSource.overseas:
+            out.append(_issue("overseas_unverified", Severity.review, [r], f"海外记录（{r.country or '未填国家'}，{r.product or '/'.join(r.vaccines)}）未核实，对照 NCIS 前需人工确认抗原与剂次", "proposal §4 核心范围 2"))
+        elif r.source == RecordSource.parent_reported:
+            out.append(_issue("overseas_unverified", Severity.warning, [r], f"家长自报记录（{r.date}，{r.product or '/'.join(r.vaccines)}）未经诊所核实", "proposal §4 核心范围 2"))
+    return out
 
 
 def detect_conflicts(inp: ConflictInput) -> ConflictReport:

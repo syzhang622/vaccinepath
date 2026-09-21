@@ -17,7 +17,7 @@
       "attends_local_school": true,
       "high_risk_condition": false,
       "high_risk_notes": null,
-      "notes": "本地出生，按时打到 12 个月，18 个月加强针漏了"
+      "notes": "本地出生，按时打到 15 个月；18 个月的加强针（5-in-1）漏了，年度流感到期"
     },
     "child-kai": {
       "id": "child-kai",
@@ -28,7 +28,7 @@
       "attends_local_school": true,
       "high_risk_condition": false,
       "high_risk_notes": null,
-      "notes": "本地出生，2 岁前全部完成"
+      "notes": "本地出生，全部按时完成；用来对照“没事就不打扰”"
     },
     "child-priya": {
       "id": "child-priya",
@@ -39,7 +39,7 @@
       "attends_local_school": false,
       "high_risk_condition": false,
       "high_risk_notes": null,
-      "notes": "2026-08 从印度迁入，海外接种卡两针，未核实"
+      "notes": "2026-08 从印度迁入。印度接种卡上大部分都打了（含 9 个月的 MR），缺 18 个月加强针；记录待核实"
     }
   },
   "records": {
@@ -368,6 +368,21 @@
     "rec-priya-01": {
       "id": "rec-priya-01",
       "child_id": "child-priya",
+      "date": "2024-06-02",
+      "vaccines": [
+        "BCG",
+        "HepB"
+      ],
+      "product": "BCG + HepB (birth)",
+      "dose_label": null,
+      "source": "overseas",
+      "country": "IN",
+      "verified": false,
+      "notes": "接种卡手写"
+    },
+    "rec-priya-02": {
+      "id": "rec-priya-02",
+      "child_id": "child-priya",
       "date": "2024-08-05",
       "vaccines": [
         "DTaP",
@@ -382,21 +397,84 @@
       "verified": false,
       "notes": "接种卡手写"
     },
-    "rec-priya-02": {
-      "id": "rec-priya-02",
+    "rec-priya-03": {
+      "id": "rec-priya-03",
       "child_id": "child-priya",
-      "date": "2024-11-20",
+      "date": "2024-10-07",
       "vaccines": [
         "DTaP",
         "IPV",
-        "Hib"
+        "Hib",
+        "PCV13"
       ],
-      "product": "Pentaxim",
+      "product": "Pentaxim + PCV",
       "dose_label": null,
       "source": "overseas",
       "country": "IN",
       "verified": false,
-      "notes": "接种卡手写"
+      "notes": null
+    },
+    "rec-priya-04": {
+      "id": "rec-priya-04",
+      "child_id": "child-priya",
+      "date": "2024-12-09",
+      "vaccines": [
+        "DTaP",
+        "IPV",
+        "Hib",
+        "HepB",
+        "PCV13"
+      ],
+      "product": "Hexaxim + PCV",
+      "dose_label": null,
+      "source": "overseas",
+      "country": "IN",
+      "verified": false,
+      "notes": null
+    },
+    "rec-priya-05": {
+      "id": "rec-priya-05",
+      "child_id": "child-priya",
+      "date": "2025-03-03",
+      "vaccines": [
+        "MMR"
+      ],
+      "product": "MR (measles-rubella)",
+      "dose_label": null,
+      "source": "overseas",
+      "country": "IN",
+      "verified": false,
+      "notes": "印度 9 个月常规 MR"
+    },
+    "rec-priya-06": {
+      "id": "rec-priya-06",
+      "child_id": "child-priya",
+      "date": "2025-06-10",
+      "vaccines": [
+        "PCV13",
+        "VAR"
+      ],
+      "product": "PCV booster + Varicella",
+      "dose_label": null,
+      "source": "overseas",
+      "country": "IN",
+      "verified": false,
+      "notes": null
+    },
+    "rec-priya-07": {
+      "id": "rec-priya-07",
+      "child_id": "child-priya",
+      "date": "2025-09-15",
+      "vaccines": [
+        "MMR",
+        "VAR"
+      ],
+      "product": "MMR + Varicella",
+      "dose_label": null,
+      "source": "overseas",
+      "country": "IN",
+      "verified": false,
+      "notes": null
     }
   },
   "tasks": {},
@@ -407,7 +485,7 @@
   "settings": {
     "reminder_repeat_hours": 0,
     "max_reminders": 3,
-    "_note": "demo: reminder_repeat_hours=0 让每次唤醒都视为已过一个提醒周期"
+    "_note": "demo: reminder_repeat_hours=0 → 上一次唤醒发的提醒到这次唤醒仍未回应即视为未响应"
   },
   "agent": {}
 }

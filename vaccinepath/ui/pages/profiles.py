@@ -9,7 +9,7 @@ import streamlit as st
 from vaccinepath.models import Actor, Child, ConflictInput, Family, RecordSource, Sex, VaccinationRecord
 from vaccinepath.rules import detect_conflicts
 from vaccinepath.store import new_id
-from vaccinepath.ui.common import SEVERITY_LABEL, age_text, store, today, vaccine_options
+from vaccinepath.ui.common import SEVERITY_LABEL, age_text, flash, store, today, vaccine_options
 
 
 def render():
@@ -43,7 +43,7 @@ def render():
                 c = Child(id=new_id("child"), family_id=fam_id, name=name, date_of_birth=dob, sex=sex, attends_local_school=local_school, high_risk_condition=high_risk, notes=notes or None)
                 s.put("children", c)
                 s.log(Actor.parent, "create_child", name, c.id, child_id=c.id)
-                st.success(f"已添加 {name}")
+                flash("success", f"✅ 已添加 {name}。去「接种时间线」看 NCIS 排程，或先录入已有接种记录。")
                 st.rerun()
 
     for f in fams:
@@ -89,5 +89,5 @@ def render():
                             r = VaccinationRecord(id=new_id("rec"), child_id=c.id, date=d, vaccines=vax, product=product or None, dose_label=label or None, source=src, country=country or None, notes=rnotes or None)
                             s.put("records", r)
                             s.log(Actor.parent, "add_record", f"{d} {vax} {product}", r.id, child_id=c.id)
-                            st.success("已保存，校验结果已刷新")
+                            flash("success", f"✅ 已保存 {c.name} {d} 的接种记录（{', '.join(vax)}），下方校验结果已刷新。")
                             st.rerun()

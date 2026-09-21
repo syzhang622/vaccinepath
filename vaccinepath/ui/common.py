@@ -1,4 +1,4 @@
-"""各页面共用：store、常量、小组件。"""
+"""各页面共用：store、常量、flash 提示、小组件。"""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import streamlit as st
 
 from vaccinepath.models import ScheduleStatus, VaccineCode
 from vaccinepath.rules.dates import age_in_months
-from vaccinepath.store import Store
+from vaccinepath.store import Store, today
 
 DISCLAIMER = "本信息不构成诊断，不替代医生建议；如有疑问请咨询医生。"
 STATUS_LABEL = {
@@ -22,13 +22,11 @@ STATUS_LABEL = {
 TASK_STATUS_LABEL = {"open": "待处理", "awaiting_parent": "等家长回应", "awaiting_review": "等人工审核", "done": "已完成", "cancelled": "已取消"}
 SEVERITY_LABEL = {"error": "❌ 错误", "warning": "⚠️ 提示", "review": "🩺 需人工确认"}
 
+__all__ = ["today"]
+
 
 def store() -> Store:
     return Store()
-
-
-def today() -> date:
-    return date.today()
 
 
 def age_text(dob: date) -> str:
@@ -53,3 +51,16 @@ def vaccine_options() -> list[str]:
 
 def disclaimer():
     st.caption(DISCLAIMER)
+
+
+# ---- flash：跨 rerun 保留一条成功/警告提示（st.rerun 会清掉当次的 st.success） ----
+
+
+def flash(kind: str, text: str) -> None:
+    st.session_state["_flash"] = (kind, text)
+
+
+def show_flash() -> None:
+    f = st.session_state.pop("_flash", None)
+    if f:
+        getattr(st, f[0])(f[1])
