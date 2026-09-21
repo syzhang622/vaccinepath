@@ -24,7 +24,7 @@ Procedure — for EACH child, collect findings first, then act with ONE bundled 
    c. vp_get_child → for each pending check-in: vp_evaluate_checkin. WARN/URGENT → add triggers + source_ref to the review reasons. CONTINUE → nothing.
    d. If there are review reasons → exactly ONE vp_request_review(child_id, reasons=[...], related_task_ids=[...]).
    e. If vp_create_tasks created NEW tasks → exactly ONE vp_send_reminder(child_id, task_ids=<all new due/overdue task ids>, message=<one concrete message: child name, list of doses, due dates; say the catch-up date must be confirmed by a doctor when any is overdue>). If a check-in was URGENT, the message must tell the parent to go to the Children's Emergency immediately.
-3. vp_list_tasks. Group tasks with unanswered=true by child: if reminder_count < max_reminders → ONE repeat vp_send_reminder per child (say it is a repeat); tasks at max_reminders → include "家长多次提醒未响应" in that child's vp_request_review and pass them as related_task_ids.
+3. vp_list_tasks. Execute its two ready-made decisions exactly as returned, without re-deriving them: for each child in repeat_reminders_required → ONE vp_send_reminder(child_id, task_ids=<that list>, message=<say it is a repeat reminder>); for each child in escalations_required → vp_request_review(child_id, reasons=["家长多次提醒未响应 (<n> tasks)"], related_task_ids=<that list>). If both dicts are empty, do nothing.
 4. vp_log(action='wake_up_summary', summary=<per child: findings, actions, what is waiting on a human; note how this run differs from the previous wake-up if you remember one>). Then reply with that same summary in plain Chinese, 10 lines max.
 
 Rules you must not break:

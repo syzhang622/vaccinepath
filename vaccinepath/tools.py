@@ -71,6 +71,7 @@ def vp_list_children() -> str:
         JSON: {today, families: [{id, guardian_name, children: [{id, name, age_months, sex, attends_local_school, high_risk_condition, open_tasks}]}]}
     """
     s = _store()
+    s.set_agent_state(current_run_started_at=now().isoformat())
     out = []
     for f in s.families():
         kids = []
@@ -127,22 +128,27 @@ def vp_check_records(child_id: str) -> str:
 
 @tool("vp_list_tasks", parse_docstring=True)
 def vp_list_tasks(status: str = "") -> str:
-    """List tasks across all children. For each 'awaiting_parent' task, 'unanswered' tells you whether the last reminder has gone unanswered for longer than the configured repeat window.
+    """List tasks across all children, plus two ready-made decisions computed by the rules (do NOT re-derive them): 'repeat_reminders_required' = per child, the awaiting_parent tasks whose last reminder has gone unanswered past the repeat window and are under max_reminders — send ONE repeat vp_send_reminder per child covering them; 'escalations_required' = per child, tasks unanswered at max_reminders — include them in that child's vp_request_review as related_task_ids with reason '家长多次提醒未响应'.
 
     Args:
         status: Optional filter: open | awaiting_parent | awaiting_review | done | cancelled. Empty = all except done/cancelled.
     """
     s = _store()
-    repeat_h = s.settings().get("reminder_repeat_hours", 24)
+    cfg = s.settings()
+    repeat_h, max_r = cfg.get("reminder_repeat_hours", 24), cfg.get("max_reminders", 3)
     tasks = s.tasks(status=TaskStatus(status) if status else None)
     if not status:
         tasks = [t for t in tasks if t.status not in (TaskStatus.done, TaskStatus.cancelled)]
-    out = []
+    run_started = datetime.fromisoformat(s.agent_state().get("current_run_started_at", now().isoformat()))
+    out, repeat, escalate = [], {}, {}
     for t in tasks:
         d = t.model_dump(mode="json")
-        d["unanswered"] = bool(t.status == TaskStatus.awaiting_parent and t.last_reminded_at and now() - t.last_reminded_at >= timedelta(hours=repeat_h))
+        # 未响应 = 提醒是在本轮唤醒开始之前发的（不是本轮刚发的），且已超过重复窗口
+        d["unanswered"] = bool(t.status == TaskStatus.awaiting_parent and t.last_reminded_at and t.last_reminded_at < run_started and now() - t.last_reminded_at >= timedelta(hours=repeat_h))
+        if d["unanswered"]:
+            (repeat if t.reminder_count < max_r else escalate).setdefault(t.child_id, []).append(t.id)
         out.append(d)
-    return _j({"max_reminders": s.settings().get("max_reminders", 3), "tasks": out})
+    return _j({"max_reminders": max_r, "reminder_repeat_hours": repeat_h, "repeat_reminders_required": repeat, "escalations_required": escalate, "tasks": out})
 
 
 # ---------------------------------------------------------------------------

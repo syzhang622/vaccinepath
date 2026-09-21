@@ -76,3 +76,20 @@ def test_wake_up_summary_increments_counter():
     call(tools.vp_log, action="wake_up_summary", summary="一")
     r = call(tools.vp_log, action="wake_up_summary", summary="二")
     assert r["wake_ups_so_far"] == 2
+
+
+def test_list_tasks_precomputes_repeat_and_escalation():
+    call(tools.vp_list_children)  # 标记一轮开始；之后发的提醒属于"本轮"
+    created = call(tools.vp_create_tasks, child_id="child-mei", items=[{"vaccine": "Hib", "dose_number": 4, "label": "B1", "due_date": "2026-07-15", "status": "overdue"}, {"vaccine": "IPV", "dose_number": 4, "label": "B1", "due_date": "2026-07-15", "status": "overdue"}])["created"]
+    a, b = created[0]["id"], created[1]["id"]
+    call(tools.vp_send_reminder, child_id="child-mei", task_ids=[a, b], message="1")
+    d = call(tools.vp_list_tasks)  # 本轮刚发的提醒不算未响应
+    assert d["repeat_reminders_required"] == {} and d["escalations_required"] == {}
+    call(tools.vp_list_children)  # 下一轮唤醒开始（seed 的 reminder_repeat_hours=0）
+    d = call(tools.vp_list_tasks)
+    assert d["repeat_reminders_required"] == {"child-mei": [a, b]} and d["escalations_required"] == {}
+    for _ in range(2):
+        call(tools.vp_send_reminder, child_id="child-mei", task_ids=[a], message="again")
+    call(tools.vp_list_children)
+    d = call(tools.vp_list_tasks)
+    assert d["escalations_required"] == {"child-mei": [a]} and d["repeat_reminders_required"] == {"child-mei": [b]}

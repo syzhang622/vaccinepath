@@ -8,7 +8,7 @@ PORT=8001
 
 case "${1:-status}" in
   start)
-    if curl -sf -o /dev/null "http://localhost:$PORT/docs"; then echo "gateway already up on :$PORT"; exit 0; fi
+    if lsof -nP -iTCP:$PORT -sTCP:LISTEN >/dev/null 2>&1; then echo "port :$PORT already in use (gateway already up, or still shutting down)"; exit 0; fi
     mkdir -p "$DF/logs"
     # 显式导出 .env（API key 等），不依赖 load_dotenv 的查找路径
     (cd "$DF/backend" && set -a && [ -f "$DF/.env" ] && . "$DF/.env"; set +a; DEER_FLOW_AUTH_DISABLED=1 PYTHONPATH=".:$ROOT" VACCINEPATH_DATA_DIR="$ROOT/data" \
@@ -19,7 +19,12 @@ case "${1:-status}" in
     done
     echo "gateway failed to start, see $LOG"; tail -30 "$LOG"; exit 1 ;;
   stop)
-    pkill -f "uvicorn app.gateway.app:app" && echo "gateway stopped" || echo "gateway not running" ;;
+    if pkill -f "uvicorn app.gateway.app:app"; then
+      for i in $(seq 1 30); do lsof -nP -iTCP:$PORT -sTCP:LISTEN >/dev/null 2>&1 || break; sleep 1; done
+      echo "gateway stopped"
+    else
+      echo "gateway not running"
+    fi ;;
   status)
     curl -sf -o /dev/null "http://localhost:$PORT/docs" && echo "up" || echo "down" ;;
   log)
