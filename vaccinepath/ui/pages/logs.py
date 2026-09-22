@@ -17,6 +17,7 @@ def render():
     with tab_audit:
         a, b = st.columns(2)
         actor = a.multiselect("actor", ["agent", "rule_engine", "parent", "clinician", "system"], default=[])
+        st.caption("动作 retrieve_guidance 的「输出」列即 retrieved: <文件名>，可追溯 agent 引用了哪份官方指引")
         child = b.selectbox("孩子", ["全部"] + list(kids), format_func=lambda x: kids.get(x, x))
         entries = s.audit_log(None if child == "全部" else child, limit=1000)
         if actor:

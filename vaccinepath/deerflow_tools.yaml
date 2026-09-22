@@ -37,6 +37,9 @@
   - name: vp_evaluate_screening
     group: vaccinepath
     use: vaccinepath.tools:vp_evaluate_screening
+  - name: vp_get_guidance
+    group: vaccinepath
+    use: vaccinepath.tools:vp_get_guidance
   - name: vp_log
     group: vaccinepath
     use: vaccinepath.tools:vp_log

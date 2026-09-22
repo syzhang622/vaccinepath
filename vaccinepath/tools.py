@@ -326,6 +326,24 @@ def vp_evaluate_screening(screening_id: str) -> str:
                "review_reason": ("接种前筛查有标记项：" + "；".join(screen_flag_text(f) for f in res.flags) + f" [{res.source_ref}]") if res.outcome != ScreenOutcome.CLEAR else None})
 
 
+@tool("vp_get_guidance", parse_docstring=True)
+def vp_get_guidance(query: str, limit: int = 3) -> str:
+    """Retrieve verbatim sentences from the official Singapore guidance stored in docs/sources/. The corpus covers ONLY post-vaccination reactions and fever in children (KKH Post Vaccination Advice, HealthHub Fever in Children) — it says nothing about scheduling, catch-up timing or record verification. Call it before writing a parent message or review reason about a WARN/URGENT check-in or a reaction, then quote ONE returned sentence verbatim and name its source. If it returns no excerpts, write your message WITHOUT any quote — never stretch an unrelated sentence to fit, and never turn a quote into a medical conclusion of your own.
+
+    Args:
+        query: What you are writing about — a symptom, a rule name, or a short description (Chinese or English), e.g. "抽搐 急诊" or "fever medication persistent".
+        limit: How many sentences to return (default 3).
+    """
+    from vaccinepath.guidance import search, source_files
+
+    hits = search(query, limit=max(1, min(limit, 5)))
+    s = _store()
+    s.log(Actor.agent, "retrieve_guidance", query, f"retrieved: {source_files(hits)}（{len(hits)} 条原句）", source=source_files(hits))
+    if not hits:
+        return _j({"query": query, "retrieved": "（无匹配）", "excerpts": [], "instruction": "本语料只覆盖接种后反应与儿童发热；这个话题没有官方原句可引用，请不要引用任何句子。"})
+    return _j({"query": query, "retrieved": source_files(hits), "excerpts": [{"quote": e.quote, "source": e.source_title, "section": e.section, "url": e.source_url, "file": e.source_file, "cite": e.cite()} for e in hits]})
+
+
 @tool("vp_log", parse_docstring=True)
 def vp_log(action: str, summary: str, child_id: str = "") -> str:
     """Append an entry to the audit log. Call once at the END of every wake-up with action='wake_up_summary' and a summary of what you checked, decided and did (counts per child).
@@ -343,4 +361,4 @@ def vp_log(action: str, summary: str, child_id: str = "") -> str:
     return _j({"logged": e.id, "wake_ups_so_far": s.agent_state().get("wake_ups", 0)})
 
 
-ALL_TOOLS = [vp_list_children, vp_get_child, vp_check_schedule, vp_check_records, vp_list_tasks, vp_create_task, vp_create_tasks, vp_update_task, vp_send_reminder, vp_request_review, vp_evaluate_checkin, vp_evaluate_screening, vp_log]
+ALL_TOOLS = [vp_list_children, vp_get_child, vp_check_schedule, vp_check_records, vp_list_tasks, vp_create_task, vp_create_tasks, vp_update_task, vp_send_reminder, vp_request_review, vp_evaluate_checkin, vp_evaluate_screening, vp_get_guidance, vp_log]

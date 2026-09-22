@@ -68,7 +68,12 @@ def render():
         r = json.loads(tools.vp_evaluate_checkin.invoke({"checkin_id": ck.id}))
         if r["review_reason"]:
             tools.vp_request_review.invoke({"child_id": c.id, "reasons": [r["review_reason"]]})
-        st.session_state["checkin_result"] = {"child_id": c.id, "outcome": r["result"]["outcome"], "triggers_text": r["triggers_text"], "source_ref": r["result"]["source_ref"], "disclaimer": r["result"]["disclaimer"], "days": ck.days_since_vaccination}
+        quotes = []
+        if r["result"]["outcome"] != "CONTINUE":
+            from vaccinepath.guidance import search
+            q = " ".join(r["triggers_text"]) + (" 急诊" if r["result"]["outcome"] == "URGENT" else " 就医")
+            quotes = [e.cite() for e in search(q, 2)]
+        st.session_state["checkin_result"] = {"child_id": c.id, "outcome": r["result"]["outcome"], "triggers_text": r["triggers_text"], "quotes": quotes, "source_ref": r["result"]["source_ref"], "disclaimer": r["result"]["disclaimer"], "days": ck.days_since_vaccination}
         st.rerun()
 
     st.subheader("历史打卡")
@@ -86,6 +91,8 @@ def _show_result(r):
     getattr(st, kind)(f"**{title}**（接种后第 {r['days']} 天的打卡已提交）  \n{text}")
     if r["triggers_text"]:
         st.markdown("触发项：" + "；".join(r["triggers_text"]))
+    for q in r.get("quotes", []):
+        st.markdown(f"> {q}")
     if r["outcome"] != "CONTINUE":
         st.markdown("已自动转入「人工审核」队列。")
     st.caption(f"依据：{r['source_ref']}")

@@ -16,7 +16,7 @@ NTU CA6117 *Agentic AI in Healthcare* 课程原型：一个**长期运行、有�
 git clone https://github.com/syzhang622/vaccinepath.git
 cd vaccinepath
 uv sync
-uv run pytest            # 期望：82 passed
+uv run pytest            # 期望：88 passed
 ```
 
 看到全部 passed 就说明环境对了。规则说明在 `docs/rule_engine.md`，四个函数在 `vaccinepath/rules/`，测试在 `tests/`。改 `vaccinepath/` 下任何东西先跑它。
@@ -75,7 +75,7 @@ uv run pytest            # 期望：82 passed
 │   ├── proposal_v2.md     课程 proposal
 │   ├── ncis_moh_2026-04.pdf  MOH 官方 NCIS 表（2026-04-01）
 │   ├── rule_engine.md     规则引擎说明：总原则、约定、四函数判定表
-│   ├── sources/           KKH / HealthHub 官方页面原文摘录（接种后升级判据）
+│   ├── sources/           KKH / HealthHub 官方页面原文摘录（升级判据 + agent 引用语料）
 │   └── demo_script.md     5 分钟录屏脚本 + 7 条验收要素对照
 ├── scripts/
 │   ├── setup.sh           一键准备环境
@@ -94,7 +94,8 @@ uv run pytest            # 期望：82 passed
 │   ├── data/mock_family.json   演示家庭种子（3 孩：准时 / 漏针 / 海外记录）
 │   ├── rules/             compute_schedule / detect_conflicts / pre_vaccination_screen / post_vaccination_escalate
 │   ├── store.py           mock 数据层（data/db.json + 文件锁）
-│   ├── tools.py           挂到 DeerFlow 的 13 个 vp_* 工具
+│   ├── tools.py           挂到 DeerFlow 的 14 个 vp_* 工具
+│   ├── guidance.py        官方指引检索（RAG）：确定性关键词匹配 docs/sources/ 原句
 │   ├── deerflow_tools.yaml  config.yaml 的 tools: 片段（setup.sh 自动追加）
 │   ├── agent/prompts.py   持续目标 + 唤醒 prompt
 │   └── ui/                Streamlit：app.py 入口 + pages/ 六页 + gateway.py HTTP 客户端

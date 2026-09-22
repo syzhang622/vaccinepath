@@ -73,4 +73,4 @@ DeerFlow 起来，能通过 API 建线程、跑一轮、建一个定时任务并
 ```
 
 ## 现在开始
-Phase 0–3 已完成并经组长实测（2026-09-22）；Phase 4 demo 脚本在 `docs/demo_script.md`。
+Phase 0–4 全部完成并经组长实测（2026-09-22）。demo 剧本在 `docs/demo_script.md`；agent 引用官方指引走 `vp_get_guidance`（语料 `docs/sources/`，只覆盖接种后反应与发热，检索不到就不引用）。

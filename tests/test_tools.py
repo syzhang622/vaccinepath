@@ -93,3 +93,25 @@ def test_list_tasks_precomputes_repeat_and_escalation():
     call(tools.vp_list_children)
     d = call(tools.vp_list_tasks)
     assert d["escalations_required"] == {"child-mei": [a]} and d["repeat_reminders_required"] == {"child-mei": [b]}
+
+
+def test_get_guidance_returns_verbatim_quotes_and_logs_retrieved():
+    d = call(tools.vp_get_guidance, query="抽搐 急诊")
+    assert d["retrieved"] == "healthhub_fever_in_children.md"
+    quotes = [e["quote"] for e in d["excerpts"]]
+    assert "Has a fit (seizure or convulsion)" in quotes  # 原句，未改写
+    assert all(e["url"].startswith("https://") for e in d["excerpts"])
+    log = Store().audit_log()[-1]
+    assert log["action"] == "retrieve_guidance" and log["output_summary"].startswith("retrieved: healthhub_fever_in_children.md")
+
+
+def test_get_guidance_picks_kkh_for_consult_topics():
+    d = call(tools.vp_get_guidance, query="退烧药 发热 持续")
+    assert "kkh_post_vaccination_advice.md" in d["retrieved"]
+    assert "Medication does not reduce fever" in [e["quote"] for e in d["excerpts"]]
+
+
+def test_get_guidance_returns_nothing_for_topics_the_corpus_does_not_cover():
+    d = call(tools.vp_get_guidance, query="逾期补种 catch-up schedule")
+    assert d["excerpts"] == [] and "不要引用" in d["instruction"]
+    assert Store().audit_log()[-1]["output_summary"].startswith("retrieved: （无匹配）")
