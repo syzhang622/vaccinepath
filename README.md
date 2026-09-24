@@ -101,3 +101,7 @@ uv run pytest            # 期望：88 passed
 │   └── ui/                Streamlit：app.py 入口 + pages/ 六页 + gateway.py HTTP 客户端
 └── tests/                 规则引擎 / 工具层 / 前端（AppTest 无头渲染）
 ```
+
+---
+
+交接与报告取材（架构、停止条件、四类风险对应、demo 证据对照、报告分节取材）见 [`docs/HANDOFF_原型交接.md`](docs/HANDOFF_原型交接.md)。
