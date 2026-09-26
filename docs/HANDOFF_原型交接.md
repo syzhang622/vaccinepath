@@ -1,7 +1,7 @@
 # VaccinePath Family SG — 原型交接文档（给报告 / PPT / 评测）
 
 代码冻结日期：2026-09-22。仓库：https://github.com/syzhang622/vaccinepath
-录屏母带：`录屏2026-09-22_22_24_33.mov`（5 分 52 秒，未剪，按 `docs/demo_script.md` 八步录的）
+录屏母带：[GitHub Release v1.0-frozen](https://github.com/syzhang622/vaccinepath/releases/tag/v1.0-frozen) → [直接下载 (79 MB)](https://github.com/syzhang622/vaccinepath/releases/download/v1.0-frozen/2026-09-22.22.24.33.mov)（5 分 52 秒，未剪，按 `docs/demo_script.md` 八步录的；视频不进 git）
 截图：`docs/screenshots/` 9 张，按步骤编号，可直接进报告第 4 节和 PPT
 
 下面按老师 project brief 的要求组织，每一条都标了「证据在哪」。
