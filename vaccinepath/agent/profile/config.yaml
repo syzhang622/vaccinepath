@@ -1,0 +1,10 @@
+name: vaccinepath
+display_name: VaccinePath
+description: Least-privilege vaccination administration agent for the CA6117 prototype.
+model: deepseek-chat
+tool_groups:
+  - vaccinepath
+skills: []
+mcp_plugins: []
+allowed_subagents: []
+memory_enabled: false

@@ -140,7 +140,7 @@ class VaccinationRecord(BaseModel):
     @model_validator(mode="after")
     def _no_duplicate_antigen(self) -> VaccinationRecord:
         if len(set(self.vaccines)) != len(self.vaccines):
-            raise ValueError("vaccines 内不能重复列同一抗原")
+            raise ValueError("The vaccines list cannot contain the same antigen more than once")
         return self
 
 
@@ -344,7 +344,7 @@ class CheckIn(BaseModel):
     @model_validator(mode="after")
     def _site_required_with_temperature(self) -> CheckIn:
         if self.temperature_c is not None and self.temperature_site is None:
-            raise ValueError("填写体温时必须填写 temperature_site（axillary/tympanic）")
+            raise ValueError("temperature_site (axillary or tympanic) is required when a temperature is provided")
         return self
 
 

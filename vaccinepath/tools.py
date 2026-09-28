@@ -31,7 +31,7 @@ from vaccinepath.models import (
 from vaccinepath.rules import compute_schedule, detect_conflicts, post_vaccination_escalate, pre_vaccination_screen
 from vaccinepath.store import Store, new_id, now, today as _today
 
-DISCLAIMER = "本信息不构成诊断，不替代医生建议；如有疑问请咨询医生。"
+DISCLAIMER = "This information is not a diagnosis and does not replace medical advice. Please consult a healthcare professional if you have concerns."
 
 
 def _store() -> Store:
@@ -67,7 +67,7 @@ def vp_list_children() -> str:
         JSON: {today, families: [{id, guardian_name, children: [{id, name, age_months, sex, attends_local_school, high_risk_condition, open_tasks}]}]}
     """
     s = _store()
-    s.set_agent_state(current_run_started_at=now().isoformat())
+    s.set_agent_state(current_run_started_at=now().isoformat(), reminded_children_this_run=[])
     out = []
     for f in s.families():
         kids = []
@@ -89,7 +89,17 @@ def vp_get_child(child_id: str) -> str:
     """
     s = _store()
     c = s.child(child_id)
-    pending = [ck for ck in s.read()["checkins"].values() if ck["child_id"] == child_id and not ck.get("evaluation")]
+    # Free text is stored for the clinician/audit UI, but is deliberately not
+    # exposed to the LLM.  The agent only needs the structured observations to
+    # run the deterministic escalation rule.  This creates a hard data/instruction
+    # boundary for caregiver-entered text instead of relying on prompt wording.
+    pending = []
+    for ck in s.read()["checkins"].values():
+        if ck["child_id"] != child_id or ck.get("evaluation"):
+            continue
+        safe = {k: v for k, v in ck.items() if k != "free_text"}
+        safe["free_text_present"] = bool(ck.get("free_text"))
+        pending.append(safe)
     return _j({"child": c, "records": s.records(child_id), "tasks": s.tasks(child_id), "pending_checkins": pending})
 
 
@@ -102,10 +112,34 @@ def vp_check_schedule(child_id: str) -> str:
     """
     s = _store()
     c = s.child(child_id)
-    res = compute_schedule(ScheduleInput(child=c, records=s.records(child_id), as_of=_today()))
+    records = s.records(child_id)
+    conflicts = detect_conflicts(ConflictInput(child=c, records=records, as_of=_today()))
+    if conflicts.has_blocking_errors:
+        blocking = [i for i in conflicts.issues if i.severity.value == "error"]
+        s.log(
+            Actor.rule_engine,
+            "compute_schedule_blocked",
+            f"child={child_id}",
+            f"blocked by {[i.code for i in blocking]}",
+            child_id=child_id,
+            source="Data validation",
+        )
+        return _j(
+            {
+                "child_id": child_id,
+                "as_of": _today(),
+                "blocked": True,
+                "reason": "Scheduling is blocked until impossible or duplicate vaccination records are corrected.",
+                "blocking_issues": blocking,
+                "counts": {},
+                "requires_clinician_review": True,
+                "items": [],
+            }
+        )
+    res = compute_schedule(ScheduleInput(child=c, records=records, as_of=_today()))
     items = [i for i in res.items if i.status != ScheduleStatus.completed]
     s.log(Actor.rule_engine, "compute_schedule", f"child={child_id} as_of={res.as_of}", _j(res.counts), child_id=child_id, source="NCIS 2026-04")
-    return _j({"child_id": child_id, "as_of": res.as_of, "age_months": res.age_months, "counts": res.counts, "requires_clinician_review": res.requires_clinician_review, "items": items})
+    return _j({"child_id": child_id, "as_of": res.as_of, "age_months": res.age_months, "blocked": False, "counts": res.counts, "requires_clinician_review": res.requires_clinician_review, "items": items})
 
 
 @tool("vp_check_records", parse_docstring=True)
@@ -124,7 +158,7 @@ def vp_check_records(child_id: str) -> str:
 
 @tool("vp_list_tasks", parse_docstring=True)
 def vp_list_tasks(status: str = "") -> str:
-    """List tasks across all children, plus two ready-made decisions computed by the rules (do NOT re-derive them): 'repeat_reminders_required' = per child, the awaiting_parent tasks whose last reminder has gone unanswered past the repeat window and are under max_reminders — send ONE repeat vp_send_reminder per child covering them; 'escalations_required' = per child, tasks unanswered at max_reminders — include them in that child's vp_request_review as related_task_ids with reason '家长多次提醒未响应'.
+    """List tasks across all children, plus two ready-made decisions computed by the rules (do NOT re-derive them): 'repeat_reminders_required' = per child, the awaiting_parent tasks whose last reminder has gone unanswered past the repeat window and are under max_reminders — send ONE repeat vp_send_reminder per child covering them; 'escalations_required' = per child, tasks unanswered at max_reminders — include them in that child's vp_request_review as related_task_ids with reason 'Caregiver did not respond after repeated reminders'.
 
     Args:
         status: Optional filter: open | awaiting_parent | awaiting_review | done | cancelled. Empty = all except done/cancelled.
@@ -159,7 +193,7 @@ def vp_create_task(child_id: str, type: str, title: str, due_date: str = "", vac
     Args:
         child_id: The child's id.
         type: vaccination_due | reminder | post_vaccination_checkin | professional_review | clarification.
-        title: Short human-readable title (Chinese or English, for the parent).
+        title: Short human-readable title in English, for the parent.
         due_date: ISO date (YYYY-MM-DD) from the schedule item, or empty.
         vaccine: Vaccine code from the schedule item (e.g. DTaP), or empty.
         dose_number: Dose number from the schedule item, or 0.
@@ -197,7 +231,7 @@ def vp_create_tasks(child_id: str, items: list[dict]) -> str:
         if old:
             existing.append(old.id)
             continue
-        status_word = {"overdue": "逾期补种", "due": "应接种"}.get(it.get("status", ""), "待接种")
+        status_word = {"overdue": "overdue catch-up", "due": "due"}.get(it.get("status", ""), "upcoming")
         title = f"{s.child(child_id).name} {vcode.value} {it.get('label', '')} {status_word}".strip()
         t = Task(id=new_id("task"), child_id=child_id, type=TaskType.vaccination_due, title=title, due_date=date.fromisoformat(it["due_date"]) if it.get("due_date") else None, vaccine=vcode, dose_number=dn, created_at=now(), updated_at=now())
         s.put("tasks", t)
@@ -236,23 +270,35 @@ def vp_send_reminder(child_id: str, task_ids: list[str], message: str) -> str:
     """
     s = _store()
     max_r = s.settings().get("max_reminders", 3)
-    covered, exhausted = [], []
+    covered, exhausted, already_reminded_this_run = [], [], []
+    agent_state = s.agent_state()
+    run_started_raw = agent_state.get("current_run_started_at")
+    run_started = datetime.fromisoformat(run_started_raw) if run_started_raw else None
+    child_already_reminded = child_id in agent_state.get("reminded_children_this_run", [])
     for tid in task_ids:
         raw = s.get("tasks", tid)
         if raw is None or raw["child_id"] != child_id:
             continue
         t = Task(**raw)
-        (exhausted if t.reminder_count >= max_r else covered).append(t)
+        if child_already_reminded or (run_started is not None and t.last_reminded_at is not None and t.last_reminded_at >= run_started):
+            already_reminded_this_run.append(t)
+        else:
+            (exhausted if t.reminder_count >= max_r else covered).append(t)
     if not covered:
-        return _j({"sent": False, "reason": "没有可提醒的任务", "exhausted": [t.id for t in exhausted]})
+        return _j({"sent": False, "reason": "No eligible tasks to remind", "exhausted": [t.id for t in exhausted], "already_reminded_this_run": [t.id for t in already_reminded_this_run]})
     if DISCLAIMER not in message:
         message = f"{message}\n\n{DISCLAIMER}"
     n = s.notify(child_id, None, "mock_push", message)
     for t in covered:
         # 只有"待处理"变"等家长回应"；"等人工审核"保持不变（审核与提醒是两条独立的线）
         s.update_task(t.id, status=TaskStatus.awaiting_parent if t.status == TaskStatus.open else t.status, reminder_count=t.reminder_count + 1, last_reminded_at=now())
+    if run_started is not None:
+        reminded_children = list(s.agent_state().get("reminded_children_this_run", []))
+        if child_id not in reminded_children:
+            reminded_children.append(child_id)
+            s.set_agent_state(reminded_children_this_run=reminded_children)
     s.log(Actor.agent, "send_reminder", f"child={child_id} tasks={[t.id for t in covered]}", message, child_id=child_id)
-    return _j({"sent": True, "notification_id": n["id"], "covered": [t.id for t in covered], "exhausted": [t.id for t in exhausted]})
+    return _j({"sent": True, "notification_id": n["id"], "covered": [t.id for t in covered], "exhausted": [t.id for t in exhausted], "already_reminded_this_run": [t.id for t in already_reminded_this_run]})
 
 
 @tool("vp_request_review", parse_docstring=True)
@@ -274,7 +320,7 @@ def vp_request_review(child_id: str, reasons: list[str], related_task_ids: list[
         t = s.update_task(existing.id, notes="\n".join([*(existing.notes.split("\n") if existing.notes else []), *new])) if new else existing
         created = False
     else:
-        t = Task(id=new_id("task"), child_id=child_id, type=TaskType.professional_review, title=f"人工审核：{s.child(child_id).name}（{len(reasons)} 项）", status=TaskStatus.awaiting_review, created_at=now(), updated_at=now(), notes="\n".join(reasons))
+        t = Task(id=new_id("task"), child_id=child_id, type=TaskType.professional_review, title=f"Professional review: {s.child(child_id).name} ({len(reasons)} items)", status=TaskStatus.awaiting_review, created_at=now(), updated_at=now(), notes="\n".join(reasons))
         s.put("tasks", t)
         new, created = reasons, True
     for tid in related_task_ids:
@@ -302,7 +348,7 @@ def vp_evaluate_checkin(checkin_id: str) -> str:
     from vaccinepath.labels import trigger_text
 
     return _j({"result": res, "triggers_text": [trigger_text(t) for t in res.triggers], "must_request_review": res.outcome != EscalationOutcome.CONTINUE,
-               "review_reason": f"接种后打卡判定 {res.outcome.value}（接种后第 {ck.days_since_vaccination} 天）：" + "；".join(trigger_text(t) for t in res.triggers) + f" [{res.source_ref}]" if res.outcome != EscalationOutcome.CONTINUE else None})
+               "review_reason": f"Post-vaccination check-in outcome: {res.outcome.value} (day {ck.days_since_vaccination} after vaccination): " + "; ".join(trigger_text(t) for t in res.triggers) + f" [{res.source_ref}]" if res.outcome != EscalationOutcome.CONTINUE else None})
 
 
 @tool("vp_evaluate_screening", parse_docstring=True)
@@ -323,7 +369,7 @@ def vp_evaluate_screening(screening_id: str) -> str:
     from vaccinepath.labels import screen_flag_text
 
     return _j({"result": res, "must_request_review": res.outcome != ScreenOutcome.CLEAR,
-               "review_reason": ("接种前筛查有标记项：" + "；".join(screen_flag_text(f) for f in res.flags) + f" [{res.source_ref}]") if res.outcome != ScreenOutcome.CLEAR else None})
+               "review_reason": ("Pre-vaccination screening flags: " + "; ".join(screen_flag_text(f) for f in res.flags) + f" [{res.source_ref}]") if res.outcome != ScreenOutcome.CLEAR else None})
 
 
 @tool("vp_get_guidance", parse_docstring=True)
@@ -331,16 +377,16 @@ def vp_get_guidance(query: str, limit: int = 3) -> str:
     """Retrieve verbatim sentences from the official Singapore guidance stored in docs/sources/. The corpus covers ONLY post-vaccination reactions and fever in children (KKH Post Vaccination Advice, HealthHub Fever in Children) — it says nothing about scheduling, catch-up timing or record verification. Call it before writing a parent message or review reason about a WARN/URGENT check-in or a reaction, then quote ONE returned sentence verbatim and name its source. If it returns no excerpts, write your message WITHOUT any quote — never stretch an unrelated sentence to fit, and never turn a quote into a medical conclusion of your own.
 
     Args:
-        query: What you are writing about — a symptom, a rule name, or a short description (Chinese or English), e.g. "抽搐 急诊" or "fever medication persistent".
+        query: What you are writing about — a symptom, a rule name, or a short description, e.g. "seizure emergency" or "fever medication persistent".
         limit: How many sentences to return (default 3).
     """
     from vaccinepath.guidance import search, source_files
 
     hits = search(query, limit=max(1, min(limit, 5)))
     s = _store()
-    s.log(Actor.agent, "retrieve_guidance", query, f"retrieved: {source_files(hits)}（{len(hits)} 条原句）", source=source_files(hits))
+    s.log(Actor.agent, "retrieve_guidance", query, f"retrieved: {source_files(hits)} ({len(hits)} verbatim excerpts)", source=source_files(hits))
     if not hits:
-        return _j({"query": query, "retrieved": "（无匹配）", "excerpts": [], "instruction": "本语料只覆盖接种后反应与儿童发热；这个话题没有官方原句可引用，请不要引用任何句子。"})
+        return _j({"query": query, "retrieved": "No match", "excerpts": [], "instruction": "This corpus only covers post-vaccination reactions and fever in children. There is no official excerpt for this topic, so do not quote any sentence."})
     return _j({"query": query, "retrieved": source_files(hits), "excerpts": [{"quote": e.quote, "source": e.source_title, "section": e.section, "url": e.source_url, "file": e.source_file, "cite": e.cite()} for e in hits]})
 
 

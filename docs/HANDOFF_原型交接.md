@@ -12,7 +12,7 @@
 
 **是什么**：一个长期运行、有状态、自触发的疫苗管理 agent。帮新加坡家长管理孩子的 NCIS 接种计划，做接种前筛查与接种后监测；所有需要临床判断的事一律转人工审核。
 
-**三个数字**：88 条自动化测试全绿 · 14 个 agent 工具 · 每次唤醒 15–20 次有序工具调用
+**三个数字**：94 条自动化测试全绿 · 14 个 agent 工具 · 每次唤醒 15–20 次有序工具调用
 
 **分工**：
 - 原型与录屏：张诗瑶（已完成）
@@ -74,7 +74,7 @@
 3. 提醒未回应 → 重发，最多 3 次；第 4 次升级为"家长多次未响应"转人工，不再重发
 4. NCIS 表未规定的（补种间隔、逾期阈值以外的临床问题）→ 一律标"需医生确认"，不猜
 5. 高危人群、HBsAg 阳性母亲变体 → 不排程，整条转人工评估
-6. DeerFlow goal 评估最多续跑 8 轮；单次唤醒有完成条件，不会空转
+6. DeerFlow goal 评估最多续跑 3 轮；单次唤醒有完成条件，不会空转
 
 **人机分工**：家长（录入、筛查、打卡、标记已接种）→ agent（巡检、建任务、提醒、转审）→ 医生（批准 / 修改后批准 / 退回、核实海外记录、给补种日期）。医生的每个决定写进日志 `human_decision` 列，agent 下次唤醒会引用。
 
@@ -85,8 +85,8 @@
 | 风险 | 我们的对应 | 证据 |
 |---|---|---|
 | **幻觉** | 所有临床判断在确定性规则引擎；LLM 只写文案；引用只允许来自 `docs/sources/` 检索到的原句，语料未覆盖则明确指示"不要引用" | `vaccinepath/guidance.py`；日志 `retrieve_guidance` 行；升级阈值全部对齐 KKH/HealthHub 官方页面（`docs/rule_engine.md` §2.4） |
-| **提示注入** | 家长自由文本（打卡补充描述、筛查补充说明）只作为记录和分类输入，从不作为指令执行；工具入参出参 Pydantic 强类型 | `vaccinepath/models.py`；`vp_evaluate_checkin` 只读结构化字段 |
-| **过度授权** | agent 只有 14 个 `vp_*` 工具，全部只读写本地 `db.json`；无联网、无外部 API、无删除权限；DeerFlow 的 web/文件工具组未启用给本 agent | `deer-flow/config.yaml` tools 段；`vaccinepath/tools.py` |
+| **提示注入** | 家长自由文本保存在临床/审计记录中，但 `vp_get_child` 在交给 LLM 前删除原文，只暴露 `free_text_present`；规则只读结构化字段；恶意指令有专门回归测试 | `vaccinepath/tools.py`；`tests/test_tools.py::test_get_child_withholds_caregiver_free_text_from_agent` |
+| **过度授权** | 线程和定时任务绑定 `assistant_id=vaccinepath`；custom-agent 的应用工具 allowlist 仅含 `vaccinepath`，并显式禁用 skills、MCP plugins、subagents 和 memory；不继承 web/shell/browser/通用文件读写工具组 | `vaccinepath/agent/profile/config.yaml`；`tests/test_agent_setup.py`；框架内建工具边界见评测报告 §8 |
 | **警报疲劳** | 每孩每轮最多 1 张审核单（合并所有理由）+ 1 条提醒（合并所有剂次）；审核单按严重程度排序 URGENT 置顶；重复筛查合并成一条；"没事就不打扰"（Kai 全程零动作） | 录屏第 2、6 步；`vp_request_review` / `vp_send_reminder` 合并逻辑 |
 
 ---
@@ -101,7 +101,7 @@
 | Human checkpoint（批准/拒绝/编辑/升级） | 3:20–4:20 | 05、06 | 医生批准 Priya、勾核实 7 条海外记录、写补种日期 2026-10-05 |
 | Safety response（安全停止/警告/升级/拒绝） | 2:10–3:00 | 03、04 | 筛查非"否"→转审不判断；41.5°C+抽搐→URGENT 红框"立即前往儿童急诊" |
 | Audit log（输入/动作/来源/时间/输出/人工决定） | 5:20–5:52 | 08 | 31 条，四类 actor：rule_engine / agent / parent / clinician |
-| Evaluation artefacts（测试、截图、结果表、错误例） | — | `docs/screenshots/` | 88 条 pytest；田依凡补用例；本文 §6 的错误例 |
+| Evaluation artefacts（测试、截图、结果表、错误例） | — | `docs/screenshots/` | 94 条 pytest；评测报告见 `docs/evaluation_report.md`；本文 §6 的错误例 |
 
 **第二次唤醒（4:40–5:10，截图 07）是全片最关键的镜头**：agent 说出这期间发生的事——Mei 流感已完成、新增 URGENT 打卡、Priya 审核已批准并引用医生给的 2026-10-05、未回应提醒已重发第 2 次、没有重复建任务。这一屏同时证明"记忆/状态"和"目标驱动"。
 
@@ -149,7 +149,7 @@ Lim 家三个孩子，全部虚构：
 | 1 问题与背景 | 新加坡儿童疫苗管理痛点、海外迁入家庭、家长负担 | `docs/proposal_v2.md` Q1–Q2 |
 | 2 系统设计 | 架构、平台、模型、记忆、工具 | 本文 §1；`README.md` 架构表；`deer-flow/config.yaml` 的 tools 段 |
 | 3 工作流·安全·治理 | 监督、升级流、边界、停止条件、审计 | 本文 §2、§3；`docs/rule_engine.md` §0 总原则 |
-| 4 原型·demo·评测 | 截图、trace、测试用例与结果 | 本文 §4；`docs/screenshots/`；`tests/`（88 条）；田依凡的用例与评测 |
+| 4 原型·demo·评测 | 截图、trace、测试用例与结果 | 本文 §4；`docs/screenshots/`；`tests/`（94 条）；`docs/evaluation_report.md` |
 | 5 讨论与未来 | 反思、可扩展性、局限 | 本文 §6 |
 
 **PPT 建议 8 页（共 10 分钟含答辩，讲 5 分钟 + 录屏 3 分钟 + 答辩 2 分钟）**：
@@ -159,7 +159,7 @@ Lim 家三个孩子，全部虚构：
 4. 安全设计：判断在规则引擎、LLM 只写文案、四类风险对应表（1 页）
 5. 停止条件与人机分工（1 页）
 6. Demo（放剪好的录屏，或用 9 张截图走一遍）（1–2 页）
-7. 评测：88 条测试 + 用例结果表 + 错误例（1 页，田依凡）
+7. 评测：94 条测试 + 用例结果表 + 错误例（1 页，田依凡）
 8. 局限与未来（1 页）
 
 ---
@@ -184,6 +184,6 @@ vaccinepath/guidance.py       官方指引检索（RAG 的 R）
 vaccinepath/agent/prompts.py  thread goal 与唤醒 prompt
 vaccinepath/ui/               Streamlit 六页
 vaccinepath/data/mock_family.json  演示家庭
-tests/                        88 条测试
+tests/                        94 条测试
 scripts/                      setup / gateway / ui / agent_setup / agent_wake / simulate_parent / phase0_smoke / phase2_demo
 ```

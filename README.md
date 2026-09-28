@@ -16,7 +16,7 @@ NTU CA6117 *Agentic AI in Healthcare* 课程原型：一个**长期运行、有�
 git clone https://github.com/syzhang622/vaccinepath.git
 cd vaccinepath
 uv sync
-uv run pytest            # 期望：88 passed
+uv run pytest            # 期望：94 passed
 ```
 
 看到全部 passed 就说明环境对了。规则说明在 `docs/rule_engine.md`，四个函数在 `vaccinepath/rules/`，测试在 `tests/`。改 `vaccinepath/` 下任何东西先跑它。
@@ -24,7 +24,7 @@ uv run pytest            # 期望：88 passed
 ### 三、要跑完整 agent 的，在二的基础上再做三步
 
 4. 运行 `scripts/setup.sh`
-   会自动下载 DeerFlow（后端框架，已锁定到 commit `1e3bfa0`，放在 `deer-flow/`，整个目录 gitignored，**不要往里写代码**）、装依赖、生成 `deer-flow/config.yaml`（开 scheduler、启用 deepseek-chat、挂上我们的 `vp_*` 工具）和 `deer-flow/.env`。第一次要几分钟，依赖比较多，别以为卡死了。重复执行安全。
+   会自动下载 DeerFlow（后端框架，已锁定到 commit `1e3bfa0`，放在 `deer-flow/`，整个目录 gitignored，**不要往里写代码**）、装依赖、生成 `deer-flow/config.yaml`（开 scheduler、启用 deepseek-chat、挂上我们的 `vp_*` 工具）和 `deer-flow/.env`，并安装只允许 VaccinePath 工具组的 custom-agent profile。第一次要几分钟，依赖比较多，别以为卡死了。重复执行安全。
 5. 准备一个 DeepSeek 的 API key
    platform.deepseek.com 注册，充几块钱够用几周。填进 `deer-flow/.env` 里的 `DEEPSEEK_API_KEY=`。（也可以在第 4 步直接 `DEEPSEEK_API_KEY=sk-xxx scripts/setup.sh`，脚本会替你写进去。）
 6. 启动并验证
@@ -64,6 +64,8 @@ uv run pytest            # 期望：88 passed
 | 规则引擎 | 纯确定性 Python：排程、查重、接种前筛查、接种后升级判定。**不经过 LLM**，可单元测试 | `vaccinepath/rules/` |
 | 前端 | Streamlit 六页，直接调规则引擎与工具函数，只有 trigger/运行记录走 gateway HTTP | `vaccinepath/ui/` |
 | 数据 | 全部 mock（JSON/SQLite）+ NCIS 日程结构化表 | `vaccinepath/`、`docs/` |
+
+VaccinePath 的线程和定时任务显式绑定 `assistant_id=vaccinepath`。这个 custom agent 的应用工具 allowlist 只有 `vaccinepath`，并禁用 skills、MCP plugins、subagents 和跨线程 memory；它不会继承 DeerFlow lead agent 的 web、shell、browser 或通用文件读写工具组。DeerFlow 自带的少量非临床框架工具仍可能存在，见评测报告的局限说明。
 
 ## 目录
 

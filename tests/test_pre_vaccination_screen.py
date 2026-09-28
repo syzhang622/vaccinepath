@@ -20,7 +20,7 @@ def screen(a: ScreeningAnswers):
 def test_all_no_is_clear():
     r = screen(answers())
     assert r.outcome == ScreenOutcome.CLEAR and r.flags == [] and not r.incomplete
-    assert "不构成诊断" in r.disclaimer
+    assert "not a diagnosis" in r.disclaimer
 
 
 def test_clear_result_still_carries_disclaimer_and_source():
