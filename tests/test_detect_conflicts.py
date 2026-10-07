@@ -59,7 +59,7 @@ def test_extra_doses_beyond_series(child):
 def test_earlier_than_schedule(child):
     r = detect_conflicts(ConflictInput(child=child, records=[rec("m", date(2025, 10, 15), [VaccineCode.MMR])], as_of=AS_OF))  # 9 月龄打 MMR
     issue = next(i for i in r.issues if i.code == "earlier_than_schedule")
-    assert issue.severity == Severity.review and "9 月龄" in issue.message
+    assert issue.severity == Severity.review and "age 9 months" in issue.message
 
 
 def test_unverified_overseas_record_needs_review(child):

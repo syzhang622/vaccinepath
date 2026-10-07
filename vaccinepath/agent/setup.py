@@ -12,6 +12,7 @@ from vaccinepath.agent.prompts import GOAL_OBJECTIVE, WAKE_UP_PROMPT
 from vaccinepath.store import SEED_PATH, Store, data_dir
 
 DEFAULT_BASE = "http://localhost:8001"
+ASSISTANT_ID = "vaccinepath"
 
 
 def agent_json() -> Path:
@@ -29,16 +30,23 @@ def setup_agent(base: str = DEFAULT_BASE, *, reset_data: bool = False) -> dict[s
         except requests.RequestException:
             pass
     h = {"content-type": "application/json"}
-    tid = requests.post(f"{base}/api/threads", json={"metadata": {"app": "vaccinepath"}}, headers=h, timeout=10).json()["thread_id"]
+    thread_response = requests.post(
+        f"{base}/api/threads",
+        json={"assistant_id": ASSISTANT_ID, "metadata": {"app": "vaccinepath"}},
+        headers=h,
+        timeout=10,
+    )
+    thread_response.raise_for_status()
+    tid = thread_response.json()["thread_id"]
     requests.put(f"{base}/api/threads/{tid}/goal", json={"objective": GOAL_OBJECTIVE, "max_continuations": 3}, headers=h, timeout=10).raise_for_status()
     r = requests.post(
         f"{base}/api/scheduled-tasks",
-        json={"thread_id": tid, "context_mode": "reuse_thread", "title": "VaccinePath daily wake-up", "prompt": WAKE_UP_PROMPT, "schedule_type": "cron", "schedule_spec": {"cron": "0 9 * * *"}, "timezone": "Asia/Singapore"},
+        json={"thread_id": tid, "context_mode": "reuse_thread", "assistant_id": ASSISTANT_ID, "title": "VaccinePath daily wake-up", "prompt": WAKE_UP_PROMPT, "schedule_type": "cron", "schedule_spec": {"cron": "0 9 * * *"}, "timezone": "Asia/Singapore"},
         headers=h,
         timeout=10,
     )
     r.raise_for_status()
-    cfg = {"thread_id": tid, "scheduled_task_id": r.json()["id"], "base": base}
+    cfg = {"thread_id": tid, "scheduled_task_id": r.json()["id"], "assistant_id": ASSISTANT_ID, "base": base}
     agent_json().parent.mkdir(parents=True, exist_ok=True)
     agent_json().write_text(json.dumps(cfg, indent=2))
     return cfg

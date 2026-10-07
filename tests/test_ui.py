@@ -35,7 +35,28 @@ def test_timeline_counts_for_priya():
     at.selectbox[0].select("child-priya").run()
     assert not at.exception
     labels = {m.label: m.value for m in at.metric}
-    assert labels["🔴 已逾期"] == "4" and labels["✅ 已完成"] == "20"
+    assert labels["🔴 Overdue"] == "4" and labels["✅ Completed"] == "20"
+
+
+def test_timeline_blocks_impossible_records():
+    from datetime import date
+
+    from vaccinepath.models import RecordSource, VaccinationRecord, VaccineCode
+
+    Store().put(
+        "records",
+        VaccinationRecord(
+            id="rec-future-ui",
+            child_id="child-mei",
+            date=date(2099, 1, 1),
+            vaccines=[VaccineCode.BCG],
+            source=RecordSource.parent_reported,
+        ),
+    )
+    at = page("timeline")
+    assert not at.exception
+    assert any("Scheduling is blocked" in e.value for e in at.error)
+    assert len(at.metric) == 0
 
 
 def test_checkin_urgent_routes_to_review():
@@ -47,7 +68,7 @@ def test_checkin_urgent_routes_to_review():
     at.multiselect[0].select("seizure")
     at.button[0].click().run()
     assert not at.exception
-    assert any("立即前往儿童急诊" in e.value for e in at.error)
+    assert any("Go to the Children's Emergency immediately" in e.value for e in at.error)
     s = Store()
     assert any(t.type.value == "professional_review" for t in s.tasks("child-mei"))
     ck = list(s.read()["checkins"].values())[0]
@@ -66,7 +87,7 @@ def test_review_queue_approve_marks_done_and_verifies_record():
     assert not at.exception
     s = Store()
     assert s.get("records", "rec-priya-01")["verified"] is True
-    assert "仍有 6 条记录未核实" in at.session_state["_flash"][1]
+    assert "6 records remain unverified" in at.session_state["_flash"][1]
     assert all(t.status.value == "done" for t in s.tasks("child-priya") if t.type.value == "professional_review")
     assert any(e["human_decision"] == "approved" for e in s.audit_log("child-priya"))
 
@@ -82,8 +103,8 @@ def test_tasks_page_screening_with_flag_routes_to_review():
     assert not at.exception
     s = Store()
     review = next(t for t in s.tasks("child-mei") if t.type.value == "professional_review")
-    assert "当前正在生病＝是" in review.notes and "current_fever" not in review.notes
-    assert "有标记项" in at.session_state["_flash"][1]
+    assert "Currently unwell = Yes" in review.notes and "current_fever" not in review.notes
+    assert "one or more flags" in at.session_state["_flash"][1]
     # 幂等：同一任务再提交一次不会再写第二份筛查、审核单理由不重复
     at = page("tasks")
     assert len(at.radio) == 0  # 已筛查的任务不再显示问卷
@@ -100,4 +121,4 @@ def test_screening_defaults_are_all_no_and_clear():
     assert not at.exception
     scr = list(Store().read()["screenings"].values())[0]
     assert scr["result"]["outcome"] == "CLEAR" and all(v == "no" for k, v in scr["answers"].items() if k in ("previous_serious_reaction", "known_allergy", "current_illness", "current_fever", "immune_condition", "immunosuppressive_medication"))
-    assert "无标记项" in at.session_state["_flash"][1]
+    assert "no flags" in at.session_state["_flash"][1]

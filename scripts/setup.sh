@@ -63,7 +63,15 @@ else
   echo "==> config.yaml 已存在，跳过"
 fi
 
-# 4. .env：只需要 DEEPSEEK_API_KEY
+# 4. Least-privilege custom agent profile.  The global lead agent may keep its
+# default tools; VaccinePath is always bound to this profile by setup_agent().
+PROFILE_DST="$DF/backend/.deer-flow/users/default/agents/vaccinepath"
+mkdir -p "$PROFILE_DST"
+cp "$ROOT/vaccinepath/agent/profile/config.yaml" "$PROFILE_DST/config.yaml"
+cp "$ROOT/vaccinepath/agent/profile/SOUL.md" "$PROFILE_DST/SOUL.md"
+echo "==> installed least-privilege VaccinePath agent profile"
+
+# 5. .env：只需要 DEEPSEEK_API_KEY
 if [ ! -f "$DF/.env" ]; then
   echo "==> 生成 .env"
   cp "$DF/.env.example" "$DF/.env"
@@ -79,7 +87,7 @@ else
   echo "==> .env 已有 DEEPSEEK_API_KEY"
 fi
 
-# 5. 我们自己的 Python 依赖（Phase 1 起有 vaccinepath/ 后启用）
+# 6. 我们自己的 Python 依赖（Phase 1 起有 vaccinepath/ 后启用）
 if [ -f "$ROOT/pyproject.toml" ]; then
   echo "==> uv sync（vaccinepath）"
   (cd "$ROOT" && uv sync)

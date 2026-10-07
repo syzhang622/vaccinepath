@@ -63,7 +63,7 @@ def _completed(spec_vaccine: VaccineCode, dose_number: int, label: str, rec: Vac
         given_date=rec.date,
         matched_record_id=rec.id,
         product_hint=hint,
-        reason=f"记录 {rec.id} 于 {rec.date} 接种",
+        reason=f"Matched record {rec.id}, administered on {rec.date}",
         source_ref=f"{P} p1",
     )
 
@@ -76,11 +76,11 @@ def _completed(spec_vaccine: VaccineCode, dose_number: int, label: str, rec: Vac
 def _catch_up_interval(series: SeriesSpec, prev: VaccinationRecord, dob: date) -> tuple[timedelta | None, timedelta | None, str] | None:
     """PDF 第 3 页给出的 catch-up 间隔 → (最小间隔, 最大间隔或 None, 依据)。没有则 None。"""
     if series.key == "MMR":
-        return timedelta(weeks=4), None, f"{P} p3 Catch-up MMR：2 剂至少间隔 4 周"
+        return timedelta(weeks=4), None, f"{P} p3 Catch-up MMR: minimum 4-week interval between two doses"
     if series.key == "VAR":
         if age_in_months(dob, prev.date) < 13 * 12:
-            return add_months(prev.date, 3) - prev.date, None, f"{P} p3 Catch-up Varicella <13 岁：2 剂间隔 3 个月"
-        return timedelta(weeks=4), timedelta(weeks=8), f"{P} p3 Catch-up Varicella 13-17 岁：2 剂间隔 4-8 周"
+            return add_months(prev.date, 3) - prev.date, None, f"{P} p3 Catch-up Varicella under age 13: 3-month interval"
+        return timedelta(weeks=4), timedelta(weeks=8), f"{P} p3 Catch-up Varicella age 13-17: 4-8-week interval"
     return None
 
 
@@ -95,7 +95,7 @@ def _routine_series(series: SeriesSpec, child: Child, records: list[VaccinationR
             continue
 
         due, overdue = _window(dob, spec)
-        reason = f"NCIS 推荐月龄 {spec.column.label}"
+        reason = f"NCIS recommended age: {spec.column.label}"
         src = f"{P} p1"
 
         if prev is not None:
@@ -106,7 +106,7 @@ def _routine_series(series: SeriesSpec, child: Child, records: list[VaccinationR
                 if earliest > due:
                     due = earliest
                     overdue = prev.date + max_iv if max_iv else overdue_after(due)
-                    reason = f"上一剂 {prev.date} 较晚，按 catch-up 间隔顺延"
+                    reason = f"Previous dose was given late on {prev.date}; deferred using the documented catch-up interval"
                     src = cu_src
             elif prev.date >= due:
                 # 排程已被追过，而 PDF 没有这个系列的补种间隔 → 不猜
@@ -117,8 +117,8 @@ def _routine_series(series: SeriesSpec, child: Child, records: list[VaccinationR
                         label=spec.label,
                         status=ScheduleStatus.needs_clinician,
                         product_hint=spec.product,
-                        reason=f"上一剂于 {prev.date} 接种，已晚于本剂推荐月龄 {spec.column.label}；NCIS 未给出 {series.key} 补种间隔",
-                        source_ref="原则 §0（PDF 未写不猜）",
+                        reason=f"The previous dose on {prev.date} was later than this dose's recommended age ({spec.column.label}); the NCIS does not specify a {series.key} catch-up interval",
+                        source_ref="Safety principle §0 (do not infer rules absent from the source)",
                     )
                 )
                 continue
@@ -134,7 +134,7 @@ def _routine_series(series: SeriesSpec, child: Child, records: list[VaccinationR
                 overdue_date=overdue,
                 product_hint=spec.product,
                 clinician_confirmation_required=status == ScheduleStatus.overdue,
-                reason=reason + ("；已逾期，补种时间需医生确认" if status == ScheduleStatus.overdue else ""),
+                reason=reason + ("; overdue catch-up timing requires clinician confirmation" if status == ScheduleStatus.overdue else ""),
                 source_ref=src,
             )
         )
@@ -177,7 +177,7 @@ def _hpv(child: Child, records: list[VaccinationRecord], as_of: date) -> list[Sc
                     dose_number=1,
                     label="D1",
                     status=ScheduleStatus.not_applicable,
-                    reason=f"校外 HPV2 规则仅覆盖 9-17 岁，当前参考年龄 {ref_age} 个月",
+                    reason=f"The out-of-school HPV2 rules cover ages 9-17 only; reference age is {ref_age} months",
                     source_ref=f"{P} p3",
                 )
             ]
@@ -201,7 +201,7 @@ def _hpv(child: Child, records: list[VaccinationRecord], as_of: date) -> list[Sc
                 due_date=due,
                 overdue_date=overdue,
                 clinician_confirmation_required=status == ScheduleStatus.overdue,
-                reason=f"校外 HPV2 {plan['series']}（0/{'/'.join(str(o) for o in offsets[1:])} 月），参考年龄 {ref_age} 个月",
+                reason=f"Out-of-school HPV2 {plan['series']} (0/{'/'.join(str(o) for o in offsets[1:])} months); reference age is {ref_age} months",
                 source_ref=f"{P} p3",
             )
         )
@@ -227,13 +227,13 @@ def _influenza(child: Child, records: list[VaccinationRecord], as_of: date) -> l
         first = inf["first_time_series"]
         if not recs:
             due = add_months(dob, lo)
-            reason = "6-59 月龄所有儿童每年接种；首次"
+            reason = "Annual vaccination for all children aged 6-59 months; first vaccination"
         elif len(recs) == 1 and first["age_months_range"][0] <= age_in_months(dob, recs[0].date) <= first["age_months_range"][1]:
             due = recs[0].date + timedelta(weeks=first["interval_weeks"])
-            reason = f"首次接种 2 剂系列，第 2 剂距第 1 剂 {first['interval_weeks']} 周"
+            reason = f"First-time two-dose series; dose 2 is {first['interval_weeks']} weeks after dose 1"
         else:
             due = add_months(recs[-1].date, 12)
-            reason = "每年一剂：上次接种 +12 个月（与组长约定，SG 无固定流感季）"
+            reason = "Annual dose: 12 months after the previous vaccination (project convention; Singapore has no fixed influenza season)"
         overdue = overdue_after(due)
         status = _status(as_of, due, overdue)
         items.append(
@@ -255,7 +255,7 @@ def _influenza(child: Child, records: list[VaccinationRecord], as_of: date) -> l
                 dose_number=n,
                 label="annual",
                 status=ScheduleStatus.needs_clinician,
-                reason="5-17 岁仅高危人群推荐，是否属于高危及剂次由医生评估",
+                reason="For ages 5-17, vaccination is recommended only for high-risk groups; risk status and dosing require clinician assessment",
                 source_ref=f"{P} p4",
             )
         )
@@ -282,7 +282,7 @@ def _high_risk(child: Child, as_of: date) -> list[ScheduleItem]:
                     dose_number=0,
                     label="high-risk",
                     status=ScheduleStatus.needs_clinician,
-                    reason=f"档案标记高危状况；{code} 的剂次与间隔 NCIS 写明视具体情况而定，需医生评估",
+                    reason=f"The profile records a high-risk condition; the NCIS states that {code} doses and intervals depend on individual circumstances and require clinician assessment",
                     source_ref=f"{P} p2-3",
                 )
             )
@@ -297,7 +297,7 @@ def _high_risk(child: Child, as_of: date) -> list[ScheduleItem]:
 def compute_schedule(inp: ScheduleInput) -> ScheduleResult:
     child, records, as_of = inp.child, [r for r in inp.records if r.child_id == inp.child.id], inp.as_of
     if as_of < child.date_of_birth:
-        raise ValueError("as_of 早于出生日期")
+        raise ValueError("as_of cannot be earlier than the child's date of birth")
     age = age_in_months(child.date_of_birth, as_of)
 
     items: list[ScheduleItem] = []
@@ -308,7 +308,7 @@ def compute_schedule(inp: ScheduleInput) -> ScheduleResult:
                 dose_number=0,
                 label="-",
                 status=ScheduleStatus.not_applicable,
-                reason=f"年龄 {age} 个月，超出 NCIS 覆盖范围（0-17 岁）",
+                reason=f"Age {age} months is outside the NCIS scope of 0-17 years",
                 source_ref=f"{P} p1",
             )
         )

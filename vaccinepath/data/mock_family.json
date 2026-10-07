@@ -17,7 +17,7 @@
       "attends_local_school": true,
       "high_risk_condition": false,
       "high_risk_notes": null,
-      "notes": "本地出生，按时打到 15 个月；18 个月的加强针（5-in-1）漏了，年度流感到期"
+      "notes": "Born locally and vaccinated on schedule through 15 months; missed the 18-month 5-in-1 booster, and the annual influenza dose is due"
     },
     "child-kai": {
       "id": "child-kai",
@@ -28,7 +28,7 @@
       "attends_local_school": true,
       "high_risk_condition": false,
       "high_risk_notes": null,
-      "notes": "本地出生，全部按时完成；用来对照“没事就不打扰”"
+      "notes": "Born locally and fully vaccinated on schedule; used as the no-action-needed comparison case"
     },
     "child-priya": {
       "id": "child-priya",
@@ -39,7 +39,7 @@
       "attends_local_school": false,
       "high_risk_condition": false,
       "high_risk_notes": null,
-      "notes": "2026-08 从印度迁入。印度接种卡上大部分都打了（含 9 个月的 MR），缺 18 个月加强针；记录待核实"
+      "notes": "Moved from India in August 2026. The Indian vaccination card records most doses, including MR at 9 months, but the 18-month booster is missing; records require verification"
     }
   },
   "records": {
@@ -378,7 +378,7 @@
       "source": "overseas",
       "country": "IN",
       "verified": false,
-      "notes": "接种卡手写"
+      "notes": "Handwritten vaccination card"
     },
     "rec-priya-02": {
       "id": "rec-priya-02",
@@ -395,7 +395,7 @@
       "source": "overseas",
       "country": "IN",
       "verified": false,
-      "notes": "接种卡手写"
+      "notes": "Handwritten vaccination card"
     },
     "rec-priya-03": {
       "id": "rec-priya-03",
@@ -444,7 +444,7 @@
       "source": "overseas",
       "country": "IN",
       "verified": false,
-      "notes": "印度 9 个月常规 MR"
+      "notes": "Routine MR dose at 9 months in India"
     },
     "rec-priya-06": {
       "id": "rec-priya-06",
@@ -485,7 +485,7 @@
   "settings": {
     "reminder_repeat_hours": 0,
     "max_reminders": 3,
-    "_note": "demo: reminder_repeat_hours=0 → 上一次唤醒发的提醒到这次唤醒仍未回应即视为未响应"
+    "_note": "Demo setting: reminder_repeat_hours=0 means a reminder sent during the previous wake-up is treated as unanswered on the next wake-up"
   },
   "agent": {}
 }

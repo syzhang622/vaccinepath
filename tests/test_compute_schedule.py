@@ -91,7 +91,7 @@ def test_no_catch_up_rule_in_pdf_means_needs_clinician(child):
     for v in (VaccineCode.DTaP, VaccineCode.IPV, VaccineCode.Hib):
         d2 = item(res, v, 2)
         assert d2.status == ScheduleStatus.needs_clinician and d2.due_date is None
-        assert "原则" in d2.source_ref
+        assert "Safety principle" in d2.source_ref
     assert res.requires_clinician_review
 
 

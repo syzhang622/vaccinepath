@@ -15,37 +15,37 @@ st.set_page_config(page_title="VaccinePath Family SG", page_icon="💉", layout=
 
 def sidebar():
     st.sidebar.title("💉 VaccinePath")
-    st.sidebar.caption("长期运行 · 有状态 · 自触发的疫苗计划 agent（课程原型，全部 mock 数据）")
+    st.sidebar.caption("Long-running · stateful · self-triggering vaccination agent (course prototype; synthetic data only)")
     up = gateway.gateway_up()
     cfg = gateway.agent_config()
-    st.sidebar.markdown(("🟢 gateway 在线" if up else "🔴 gateway 离线") + ("  ·  agent 已建" if cfg else "  ·  agent 未建"))
+    st.sidebar.markdown(("🟢 Gateway online" if up else "🔴 Gateway offline") + ("  ·  Agent ready" if cfg else "  ·  Agent not set up"))
     state = Store().agent_state()
     if state.get("wake_ups"):
-        st.sidebar.markdown(f"已唤醒 **{state['wake_ups']}** 次 · 上次 {str(state.get('last_wake_up', ''))[:16].replace('T', ' ')}")
+        st.sidebar.markdown(f"**{state['wake_ups']}** wake-ups · Last {str(state.get('last_wake_up', ''))[:16].replace('T', ' ')}")
 
-    if st.sidebar.button("⏩ 快进到下一次检查", type="primary", disabled=not (up and cfg), width="stretch", help="= POST /api/scheduled-tasks/{id}/trigger，不等 cron"):
-        with st.sidebar.status("agent 醒来了，正在检查…", expanded=True) as box:
+    if st.sidebar.button("⏩ Run next check now", type="primary", disabled=not (up and cfg), width="stretch", help="Manually triggers the same scheduled workflow without waiting for cron"):
+        with st.sidebar.status("The agent is checking the family…", expanded=True) as box:
             try:
                 r = gateway.trigger_wake_up()
-                box.update(label=f"完成：{r['status']}，{r['seconds']}s，{len(r['calls'])} 次工具调用", state="complete" if r["status"] == "success" else "error")
+                box.update(label=f"Completed: {r['status']} · {r['seconds']}s · {len(r['calls'])} tool calls", state="complete" if r["status"] == "success" else "error")
                 st.session_state["last_wake"] = r
             except Exception as e:  # noqa: BLE001
-                box.update(label=f"失败：{e}", state="error")
+                box.update(label=f"Failed: {e}", state="error")
         st.rerun()
     if "last_wake" in st.session_state:
         r = st.session_state["last_wake"]
-        with st.sidebar.expander(f"上次唤醒摘要（{r['seconds']}s / {len(r['calls'])} 次调用）", expanded=True):
-            st.markdown(r["reply"] or "（无回复）")
+        with st.sidebar.expander(f"Latest wake-up summary ({r['seconds']}s / {len(r['calls'])} calls)", expanded=True):
+            st.markdown(r["reply"] or "(No response)")
 
-    with st.sidebar.expander("演示工具"):
-        st.caption("重置 = 数据回到 mock 家庭 + 重建 agent（新线程，记忆清零）")
-        if st.button("重置演示（数据 + agent）", width="stretch", disabled=not up):
+    with st.sidebar.expander("Demo tools"):
+        st.caption("Reset restores the synthetic family and rebuilds the agent with a fresh thread.")
+        if st.button("Reset demo data and agent", width="stretch", disabled=not up):
             try:
                 setup_agent(reset_data=True)
                 st.session_state.pop("last_wake", None)
-                st.session_state["_flash"] = ("success", "已重置：数据回到 mock 家庭，agent 已重建（唤醒计数 0）。")
+                st.session_state["_flash"] = ("success", "Reset complete: synthetic data restored and a fresh agent created (0 wake-ups).")
             except Exception as e:  # noqa: BLE001
-                st.session_state["_flash"] = ("error", f"重置失败：{e}")
+                st.session_state["_flash"] = ("error", f"Reset failed: {e}")
             st.rerun()
 
 
@@ -63,12 +63,12 @@ def _page(fn):
 
 def main():
     pages = [
-        st.Page(_page(profiles.render), title="档案", icon="👪", default=True),
-        st.Page(_page(timeline.render), title="接种时间线", icon="📅", url_path="timeline"),
-        st.Page(_page(tasks.render), title="待办与提醒", icon="✅", url_path="tasks"),
-        st.Page(_page(checkin.render), title="接种后打卡", icon="🌡️", url_path="checkin"),
-        st.Page(_page(review.render), title="人工审核", icon="🩺", url_path="review"),
-        st.Page(_page(logs.render), title="日志", icon="📜", url_path="logs"),
+        st.Page(_page(profiles.render), title="Profiles", icon="👪", default=True),
+        st.Page(_page(timeline.render), title="Vaccination Timeline", icon="📅", url_path="timeline"),
+        st.Page(_page(tasks.render), title="Tasks & Reminders", icon="✅", url_path="tasks"),
+        st.Page(_page(checkin.render), title="Post-vaccination Check-in", icon="🌡️", url_path="checkin"),
+        st.Page(_page(review.render), title="Clinical Review", icon="🩺", url_path="review"),
+        st.Page(_page(logs.render), title="Audit & Runs", icon="📜", url_path="logs"),
     ]
     st.navigation(pages).run()
 

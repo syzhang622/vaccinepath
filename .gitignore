@@ -5,6 +5,7 @@ deer-flow/
 .env
 .env.*
 config.yaml
+!vaccinepath/agent/profile/config.yaml
 *.bak
 
 # 日志与运行数据

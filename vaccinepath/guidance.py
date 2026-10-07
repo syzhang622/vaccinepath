@@ -92,4 +92,4 @@ def search(query: str, limit: int = 3) -> list[Excerpt]:
 
 
 def source_files(excerpts: list[Excerpt]) -> str:
-    return ", ".join(dict.fromkeys(e.source_file for e in excerpts)) or "（无匹配）"
+    return ", ".join(dict.fromkeys(e.source_file for e in excerpts)) or "No match"

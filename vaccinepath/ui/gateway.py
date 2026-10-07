@@ -60,11 +60,11 @@ def trigger_wake_up(timeout_s: int = 300) -> dict[str, Any]:
     """手动触发一次唤醒并等它结束。返回 {status, run_id, seconds, calls, reply}。"""
     cfg = agent_config()
     if not cfg:
-        raise RuntimeError("还没建 agent：先跑 scripts/agent_setup.sh")
+        raise RuntimeError("Agent not set up. Run scripts/agent_setup.sh first.")
     before = len(list_runs(200))
     r = requests.post(f"{base_url()}/api/scheduled-tasks/{cfg['scheduled_task_id']}/trigger", timeout=10)
     if r.status_code == 409:
-        raise RuntimeError("上一次唤醒还在跑，稍等再点")
+        raise RuntimeError("The previous wake-up is still running. Try again shortly.")
     r.raise_for_status()
     t0 = time.time()
     while time.time() - t0 < timeout_s:
@@ -74,4 +74,4 @@ def trigger_wake_up(timeout_s: int = 300) -> dict[str, Any]:
             calls, reply = run_reply(run["run_id"]) if run["status"] == "success" else ([], run.get("error") or "")
             return {"status": run["status"], "run_id": run["run_id"], "seconds": round(time.time() - t0), "calls": calls, "reply": reply}
         time.sleep(2)
-    raise TimeoutError("唤醒超时")
+    raise TimeoutError("Agent wake-up timed out.")
