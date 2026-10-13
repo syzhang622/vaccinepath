@@ -1,5 +1,7 @@
 # VaccinePath Family SG
 
+English: see [SETUP.md](SETUP.md)
+
 NTU CA6117 *Agentic AI in Healthcare* 课程原型：一个**长期运行、有状态、自触发**的 agent，帮新加坡家长管理孩子的疫苗接种计划并做接种后的结构化监测。范围与设计以 [`docs/proposal_v2.md`](docs/proposal_v2.md) 为准，开发约定见 [`CLAUDE.md`](CLAUDE.md)。
 
 ## 本地环境说明（组员必读）
